@@ -1,6 +1,6 @@
 """組出 dist/project.json：骨架＋劇本對話卡＋tangshi-kit 插件卡＋有條件連線。"""
 import json, os, pathlib, random, re, shutil, subprocess
-import art, cards, plugin, recite_plan, script, variables, vocab
+import art, cards, line_audio, plugin, recite_plan, script, variables, vocab
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 PROJECT_ID = 'project-ac006859-4f72-4956-a83e-ddc2ed9a1c0a'
 
@@ -43,6 +43,16 @@ def follow_marks(url):
     if not gaps: return []
     p0, p1 = max(gaps, key=lambda g: g[1] - g[0])
     return [round(p0 * i / 5, 3) for i in range(5)] + [round(p1 + (dur - p1) * i / 5, 3) for i in range(5)]
+
+
+def voiced(node, who):
+    """有配好音檔的台詞接上 voiceUrl，卡片打開 voiceMode（線上播放器只看卡片層這個欄位）。who：每句 (講者, 表情)。"""
+    d = node['data']
+    for line, (sp, ex) in zip(d['dialogueLines'], who):
+        f = line_audio.job(sp, ex, line['text'])['file']
+        if (line_audio.OUT / f).exists(): line['voiceUrl'] = '/files/assets/audio/lines/' + f
+    if any(l.get('voiceUrl') for l in d['dialogueLines']): d['voiceMode'] = 'ai'
+    return node
 
 
 def stage_for(who, seen, a):
@@ -94,8 +104,8 @@ def build():
             sp = lambda i: i['speaker'] if i['speaker'] != '旁白' else ''
             # 背景是 CG 時舞台清空，不然立繪會擋住畫面
             stages = [[] if on_cg[0] else stage_for((sp(i), i['expr']), seen, a) for i in buf]
-            N(cards.dialogue(nid, scene['title'], [(sp(i), i['text']) for i in buf],
-                             bg=bg, start=st['first'], stages=stages))
+            N(voiced(cards.dialogue(nid, scene['title'], [(sp(i), i['text']) for i in buf],
+                             bg=bg, start=st['first'], stages=stages), [(sp(i), i['expr']) for i in buf]))
             st['first'] = False; buf.clear()
             chain(nid)
 
@@ -112,7 +122,8 @@ def build():
                 if e['core']:
                     core_order.append(e)
                     xid = f"x-{e['id']}"
-                    N(cards.dialogue(xid, f"再說一次：{e['word']}", sc['explain'][e['word']], bg=bg))
+                    N(voiced(cards.dialogue(xid, f"再說一次：{e['word']}", sc['explain'][e['word']], bg=bg),
+                             [(spk, '') for spk, _ in sc['explain'][e['word']]]))
                     L(vid, xid, cond=('last_ok', 'eq', False))
                     L(xid, vid)
             elif it['kind'] == 'follow':

@@ -1,0 +1,24 @@
+{
+ "voices": {
+  "阿禾": "Chinese (Mandarin)_Straightforward_Boy",
+  "小樂": "Chinese (Mandarin)_ExplorativeGirl",
+  "孟浩然": "Chinese (Mandarin)_Gentleman",
+  "故人": "Chinese (Mandarin)_Kind-hearted_Elder",
+  "旁白": "Chinese (Mandarin)_Wise_Women"
+ },
+ "emotions": {"開心": "happy", "驚訝": "surprised", "想事情": "calm", "": "neutral", "旁白": "calm"},
+ "spoken": [
+  ["郭外斜", "鍋外霞"],
+  ["這個「斜」，", "這個「霞」，"],
+  ["所以「斜」，", "所以「霞」，"],
+  ["家、斜、麻、花", "家、霞、麻、花"],
+  ["ㄒㄧㄚˊ", "霞"],
+  ["ㄒㄧㄝˊ", "鞋"],
+  ["「還」在這裡念ㄏㄞˊ", "「孩」在這裡念孩"],
+  ["還來", "孩來"],
+  ["郭", "鍋"],
+  ["場圃", "腸圃"],
+  ["叫「場」", "叫「腸」"],
+  ["打穀的場", "打穀的腸"]
+ ]
+}

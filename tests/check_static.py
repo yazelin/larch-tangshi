@@ -83,4 +83,17 @@ def card_node_gate_lists():
     assert d['pluginWriteVars'] == ['got_guocheng', 'learned', 'last_ok'] and d['pluginFrame']['showButton'] is False
     assert '"word": "郭"' in d['pluginValues']['script'] and 'common.js' not in d['pluginHtml']
 
+@test
+def recite_plan_rules():
+    import recite_plan, vocab
+    r = recite_plan.plan(vocab.LINES)
+    allc = ''.join(vocab.LINES)
+    assert [len(x['hide']) for x in r] == [14, 27, 40], [len(x['hide']) for x in r]
+    for x in r:
+        hidden = {allc[i] for i in x['hide']}
+        extra = [t for t in x['tiles'] if t not in hidden]
+        assert len(extra) == 3, extra
+        assert sorted(t for t in x['tiles'] if t in hidden) == sorted(allc[i] for i in x['hide'])
+    assert recite_plan.plan(vocab.LINES) == r, '同 seed 要固定'
+
 if __name__ == '__main__': main()

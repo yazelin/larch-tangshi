@@ -3,7 +3,7 @@
     python3 src/plugin.py --test <card_id> [--preset '<json>'] [--patch '<json>']   # 產 dist/test-<card_id>.json
 """
 import copy, json, pathlib, sys
-import cards, variables
+import cards, recite_plan, variables, vocab
 
 HERE = pathlib.Path(__file__).resolve().parent / 'plugin'
 ROOT = HERE.parent.parent
@@ -25,6 +25,10 @@ SAMPLES['vocab'] = {
                            {'img': _PH, 'label': '一隻小雞', 'ok': False},
                            {'img': _PH, 'label': '白米飯', 'ok': False}]},
     'read': ['got_jishu', 'learned'], 'write': ['got_jishu', 'learned', 'last_ok']}
+_CG = '/files/assets/placeholder/cg.png'
+SAMPLES['order'] = {'script': {'items': [{'img': _CG, 'caption': f'{vocab.LINES[2*i]}，{vocab.LINES[2*i+1]}'} for i in range(4)],
+                               'start': [2, 0, 3, 1]}, 'read': [], 'write': []}
+SAMPLES['recite'] = {'script': {'lines': vocab.LINES, 'rounds': recite_plan.plan(vocab.LINES)}, 'read': [], 'write': ['stars']}
 SAMPLES['follow'] = {'script': {'lines': ['故人具雞黍', '邀我至田家'], 'audio': '', 'marks': []}, 'read': [], 'write': []}
 
 

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:#fbf3e4;font-family:"Noto Sans TC",system-ui,sans-serif;color:#2b2b2b}
+#wrap{position:absolute;inset:3vh 3vw;display:flex;flex-direction:column;align-items:center;gap:2vh}
+#tip{font-size:min(5vw,3vh)}
+#grid{display:grid;grid-template-columns:1fr 1fr;gap:3vw;width:100%;max-width:760px;flex:1;min-height:0}
+.slot{position:relative;border:4px solid #e2d6bd;border-radius:14px;background:#fff;padding:0;overflow:hidden;cursor:pointer;min-height:44px;display:flex;flex-direction:column}
+.slot img{width:100%;flex:1;min-height:0;object-fit:cover}
+.slot span{font-family:"LXGW WenKai TC","BiauKai",serif;font-size:min(4vw,2.4vh);padding:4px}
+.slot b{position:absolute;left:6px;top:6px;background:#2f6b4f;color:#fff;border-radius:50%;width:28px;height:28px;line-height:28px;font-size:16px}
+.slot.picked{border-color:#f2b33d}
+.slot.good{border-color:#2f6b4f}
+#okBtn{visibility:hidden;min-width:120px;min-height:48px;border:0;border-radius:24px;background:#2f6b4f;color:#fff;font-family:inherit;font-weight:600;font-size:min(5vw,3vh)}
+</style></head>
+<body>
+<div id="wrap"><div id="tip">點兩張圖交換位置，排成詩的順序</div><div id="grid"></div><button id="okBtn">好</button></div>
+<script src="common.js"></script>
+<script>
+var S, pos = [], picked = -1;
+function draw() {
+  var g = document.getElementById('grid'); g.innerHTML = '';
+  pos.forEach(function (k, i) {
+    var b = document.createElement('button'); b.className = 'slot' + (k === i ? ' good' : '') + (picked === i ? ' picked' : '');
+    b.dataset.idx = k;
+    b.innerHTML = '<b></b><img alt=""><span></span>';
+    b.querySelector('b').textContent = i + 1; b.querySelector('img').src = S.items[k].img; b.querySelector('span').textContent = S.items[k].caption;
+    b.onclick = function () {
+      if (picked < 0) { picked = i; }
+      else { var t = pos[picked]; pos[picked] = pos[i]; pos[i] = t; picked = -1; }
+      draw();
+    };
+    g.appendChild(b);
+  });
+  var solved = pos.every(function (k, i) { return k === i; });
+  document.getElementById('tip').textContent = solved ? '排好了！' : '點兩張圖交換位置，排成詩的順序';
+  document.getElementById('okBtn').style.visibility = solved ? 'visible' : 'hidden';
+}
+L.onInit(function (s) { S = s; pos = (S.start || [0, 1, 2, 3]).slice(); document.getElementById('okBtn').onclick = function () { L.done(); }; draw(); });
+</script>
+</body></html>

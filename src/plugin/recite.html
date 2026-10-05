@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:#fbf3e4;font-family:"Noto Sans TC",system-ui,sans-serif;color:#2b2b2b}
+#wrap{position:absolute;inset:3vh 3vw;display:flex;flex-direction:column;align-items:center;gap:2vh}
+#round{font-size:min(5vw,3vh);color:#6b6257}
+#poem{display:grid;grid-template-columns:1fr 1fr;gap:1vh 6vw;font-family:"LXGW WenKai TC","BiauKai","DFKai-SB",serif;font-size:min(7vw,5vh)}
+.blank{display:inline-block;width:1.1em;height:1.1em;border-bottom:3px solid #d9a441;vertical-align:bottom}
+.blank.filled{border-color:transparent}
+#tiles{display:flex;flex-wrap:wrap;justify-content:center;gap:2vw;max-width:760px}
+.tile{min-width:48px;min-height:48px;font-family:"LXGW WenKai TC","BiauKai",serif;font-size:min(7vw,4.4vh);border:2px solid #e2d6bd;border-radius:12px;background:#fff;cursor:pointer}
+.tile.used{visibility:hidden}
+.tile.wrong{border-color:#c8553d;animation:shake .4s}
+@keyframes shake{25%{translate:-6px}75%{translate:6px}}
+#end{display:none;flex-direction:column;align-items:center;gap:2vh;font-size:min(6vw,4vh)}
+#okBtn{min-width:120px;min-height:48px;border:0;border-radius:24px;background:#2f6b4f;color:#fff;font-family:inherit;font-weight:600;font-size:min(5vw,3vh)}
+</style></head>
+<body>
+<div id="wrap"><div id="round"></div><div id="poem"></div><div id="tiles"></div>
+<div id="end"><div id="starsTxt"></div><button id="okBtn">好</button></div></div>
+<script src="common.js"></script>
+<script>
+var S, r = 0, miss = 0, stars = 0;
+function round() {
+  var R = S.rounds[r]; miss = 0;
+  document.getElementById('round').textContent = '第 ' + (r + 1) + ' 關，共 3 關';
+  var poem = document.getElementById('poem'); poem.innerHTML = '';
+  var k = 0;
+  S.lines.forEach(function (line) {
+    var d = document.createElement('div');
+    line.split('').forEach(function (c) {
+      var i = k++;
+      if (R.hide.indexOf(i) >= 0) { var s = document.createElement('span'); s.className = 'blank'; s.dataset.i = i; s.dataset.ch = c; d.appendChild(s); }
+      else d.appendChild(document.createTextNode(c));
+    });
+    poem.appendChild(d);
+  });
+  var tiles = document.getElementById('tiles'); tiles.innerHTML = '';
+  R.tiles.forEach(function (c) {
+    var b = document.createElement('button'); b.className = 'tile'; b.dataset.ch = c; b.textContent = c;
+    b.onclick = function () { pick(b); }; tiles.appendChild(b);
+  });
+}
+function pick(b) {
+  var blank = document.querySelector('.blank:not(.filled)'); if (!blank) return;
+  if (b.dataset.ch === blank.dataset.ch) {
+    blank.textContent = b.dataset.ch; blank.classList.add('filled'); b.classList.add('used');
+    if (!document.querySelector('.blank:not(.filled)')) {
+      if (miss <= 2) stars += 1;
+      r += 1;
+      if (r < S.rounds.length) setTimeout(round, 700); else setTimeout(finish, 700);
+    }
+  } else {
+    miss += 1; b.classList.remove('wrong'); void b.offsetWidth; b.classList.add('wrong');
+  }
+}
+function finish() {
+  L.set('stars', stars);
+  document.getElementById('poem').style.display = 'none'; document.getElementById('tiles').style.display = 'none';
+  document.getElementById('round').textContent = '全部背完了！';
+  document.getElementById('starsTxt').textContent = '得到 ' + stars + ' 顆星';
+  document.getElementById('end').style.display = 'flex';
+}
+L.onInit(function (s) { S = s; document.getElementById('okBtn').onclick = function () { L.done(); }; round(); });
+</script>
+</body></html>

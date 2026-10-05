@@ -94,4 +94,37 @@ cardTest('follow', async (withCard, noInit) => {
   });
 });
 
+cardTest('order', async (withCard, noInit) => {
+  await noInit('order', '.slot');
+  await withCard('order', async ui => {
+    const f = await ui.frameWith('.slot');
+    for (let i = 0; i < 4; i++) {           // 選擇排序：第 i 格放 data-idx=i 的那張
+      const idx = await f.locator('.slot').evaluateAll(s => s.map(b => +b.dataset.idx));
+      const j = idx.indexOf(i);
+      if (j !== i) { await f.locator('.slot').nth(i).click(); await f.locator('.slot').nth(j).click(); }
+    }
+    await f.locator('#okBtn').waitFor({ state: 'visible' }); await sleep(300); await f.locator('#okBtn').click();
+    await ui.waitText(/RESULT/);
+    assert(true, '四張圖排好可以往下');
+  });
+});
+
+cardTest('recite', async (withCard, noInit) => {
+  await noInit('recite', '.tile');
+  await withCard('recite', async ui => {
+    const f = await ui.frameWith('.tile');
+    let wrongOnce = false;
+    while (await f.locator('.blank:not(.filled)').count()) {
+      const need = await f.locator('.blank:not(.filled)').first().getAttribute('data-ch');
+      if (!wrongOnce) { await f.locator(`.tile:not([data-ch="${need}"])`).first().click(); wrongOnce = true; }
+      await f.locator(`.tile[data-ch="${need}"]:not(.used)`).first().click();
+      await sleep(120);
+      if (!(await f.locator('.blank:not(.filled)').count())) await sleep(1000);   // 換關
+    }
+    await f.locator('#okBtn').waitFor({ state: 'visible' }); await sleep(300); await f.locator('#okBtn').click();
+    const t = await ui.waitText(/RESULT stars=\d/);
+    assert(/stars=3/.test(t), '三關錯 ≤2 次 → 3 顆星：' + t.match(/RESULT stars=\d/)[0]);
+  }, { mobile: true });
+});
+
 for (const [id, fn] of Object.entries(TESTS)) if (!only || only === id) await fn(withCard, noInit);

@@ -49,6 +49,16 @@ async function noInit(id, selector) {
   await p.goto('file://' + process.cwd() + `/dist/raw-${id}.html`);
   await sleep(2600);
   assert(await p.locator(selector).count() > 0, `${id} 沒收到 init 也會用預設資料啟動`);
+  // 正式 init 晚到（慢手機）：預覽模式不能送出任何寫入，而且要換成正式資料
+  const sent = await p.evaluate(() => { const out = []; const o = window.parent.postMessage.bind(window.parent);
+    window.__sent = out; window.parent.postMessage = (m, t) => { out.push(m.type); o(m, t); }; return true; });
+  if (id === 'vocab') {
+    await p.locator('button[data-ok="1"]').click(); await sleep(1200);
+    assert(!(await p.evaluate(() => window.__sent.some(t => t === 'larch:set' || t === 'larch:complete'))), 'vocab 預覽模式答題不送出寫入');
+    await p.evaluate(() => window.postMessage({ type: 'larch:init', values: { script: JSON.stringify({ word: '郭', zhuyin: 'ㄍㄨㄛ', meaning: '外城', quiz: false }) }, variables: {} }, '*'));
+    await sleep(2500);
+    assert(await p.locator('#word').innerText() === '郭', 'vocab 正式 init 晚到：換成正式資料');
+  }
   await b.close();
 }
 

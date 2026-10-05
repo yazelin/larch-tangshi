@@ -4,9 +4,14 @@
 html,body{margin:0;height:100%;overflow:hidden;background:#fbf3e4;color:#2b2b2b;font-family:"Noto Sans TC",system-ui,sans-serif}
 /* 頂端留 12vh：播放器把插件卡 iframe 往上放約 10.5% 畫面高，頂端那段在螢幕外 */
 #card{position:absolute;inset:12vh 4vw 4vh;display:flex;flex-direction:column;align-items:center;gap:2vh}
-#head{display:flex;align-items:center;gap:3vw;cursor:pointer;border:0;background:none;padding:0}
-#word{font-family:"LXGW WenKai TC","BiauKai","DFKai-SB",serif;font-size:min(22vw,22vh);line-height:1;color:#2b2b2b}
-#zhuyin{writing-mode:vertical-rl;font-size:min(4.5vw,3.6vh);letter-spacing:.2em;color:#6b6257}
+#head{display:flex;align-items:center;cursor:pointer;border:0;background:none;padding:0}
+#word{display:flex;gap:1vw;font-family:"LXGW WenKai TC","BiauKai","DFKai-SB",serif;font-size:min(22vw,22vh);line-height:1;color:#2b2b2b}
+/* 直式注音：每字一欄、符號正立；二三四聲標在最後一個符號右上角，輕聲標在整欄上頭（教育部《國語注音符號手冊》） */
+.cell{display:flex;align-items:center}
+.zy{display:flex;flex-direction:column;align-items:center;font-family:"Noto Sans TC",system-ui,sans-serif;font-size:min(4.5vw,3.6vh);line-height:1.05;color:#6b6257;margin-left:.15em;padding-right:.6em}
+.zy .sym{position:relative;display:block}
+.zy .tone{position:absolute;left:100%;top:-.2em;font-size:.8em;line-height:1}
+.zy .light{display:block;font-size:.9em;line-height:.8}
 #pic{width:min(40vw,26vh);aspect-ratio:1;object-fit:contain}
 #ask{font-size:min(5vw,3vh)}
 #opts{display:grid;grid-template-columns:repeat(3,1fr);gap:3vw;width:100%;max-width:720px}
@@ -24,7 +29,7 @@ body.shown #opts,body.shown #ask{display:none}
 </style></head>
 <body>
 <div id="card">
-  <button id="head" aria-label="聽發音"><span id="word"></span><span id="zhuyin"></span></button>
+  <button id="head" aria-label="聽發音"><span id="word"></span></button>
   <img id="pic" alt="">
   <div id="ask"></div>
   <div id="opts"></div>
@@ -35,6 +40,25 @@ body.shown #opts,body.shown #ask{display:none}
 <script>
 var S = {}, answered = false, $ = function (id) { return document.getElementById(id); };
 function show() { document.body.classList.add('shown'); }
+/* 每個字後面接一欄直式注音。音節裡的 ˊˇˋ 拆出來放在最後一個符號右上角，˙ 放在整欄上頭 */
+function renderWord(word, zhuyin) {
+  var w = $('word'), syl = (zhuyin || '').split(/\s+/);
+  w.innerHTML = ''; w.dataset.word = word; w.dataset.word = word;
+  word.split('').forEach(function (ch, i) {
+    var cell = document.createElement('span'); cell.className = 'cell';
+    var han = document.createElement('span'); han.textContent = ch; cell.appendChild(han);
+    var z = document.createElement('span'); z.className = 'zy';
+    var sy = syl[i] || '', light = sy.indexOf('˙') >= 0, tone = (sy.match(/[ˊˇˋ]/) || [''])[0];
+    var syms = sy.replace(/[˙ˊˇˋ]/g, '').split('');
+    if (light) { var l = document.createElement('span'); l.className = 'light'; l.textContent = '˙'; z.appendChild(l); }
+    syms.forEach(function (c, k) {
+      var e = document.createElement('span'); e.className = 'sym'; e.textContent = c;
+      if (tone && k === syms.length - 1) { var t = document.createElement('span'); t.className = 'tone'; t.textContent = tone; e.appendChild(t); }
+      z.appendChild(e);
+    });
+    cell.appendChild(z); w.appendChild(cell);
+  });
+}
 function answer(btn, ok) {
   if (answered) return; answered = true;
   var got = L.get(S.gotVar, -1);
@@ -54,7 +78,7 @@ function answer(btn, ok) {
 }
 L.onInit(function (s) {
   S = s; document.body.dataset.review = S.review ? '1' : '0';
-  $('word').textContent = S.word; $('zhuyin').textContent = S.zhuyin;
+  renderWord(S.word, S.zhuyin);
   $('pic').src = S.img || ''; $('meaning').textContent = S.word + '：' + S.meaning;
   $('head').onclick = function () { L.play(S.audio); };
   $('okBtn').onclick = function () { L.done(); };

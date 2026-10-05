@@ -27,7 +27,7 @@ async function run(mode) {   // right＝全對；wrong＝每個核心字第一�
       if (hit && hit !== lastExplain) { explains++; lastExplain = hit; }
       const v = await ui.frameWith('button[data-ok]');
       if (await visible(v, 'button[data-ok]')) {
-        const word = await v.locator('#word').innerText();
+        const word = await v.locator('#word').getAttribute('data-word');
         const review = await v.evaluate(() => document.body.dataset.review === '1');
         if (review) reviews++;
         const wrong = mode === 'wrong' && !review && !wrongDone.has(word);

@@ -120,13 +120,16 @@ def every_node_reaches_end():
     p = _built(); b = p['boards'][0]
     nxt = {}
     for e in b['edges']: nxt.setdefault(e['source'], []).append(e['target'])
-    for n in b['nodes']:
-        seen, todo = set(), [n['id']]
+    def reach(start):
+        seen, todo = set(), [start]
         while todo:
             x = todo.pop()
             if x in seen: continue
             seen.add(x); todo += nxt.get(x, [])
-        assert 'summary' in seen, f"{n['id']} 走不到結算"
+        return seen
+    after = reach('summary')   # 結算之後的收尾台詞算終點
+    for n in b['nodes']:
+        assert n['id'] in after or 'summary' in reach(n['id']), f"{n['id']} 走不到結算"
 
 @test
 def gate_matches_script():
@@ -154,5 +157,27 @@ def plugin_html_unique_per_node():
     # 相鄰兩張插件卡的 pluginHtml 一字不差時，播放器不會重載 iframe，第二張卡沿用第一張的畫面（2026-10-05 實測）
     htmls = [n['data']['pluginHtml'] for n in _built()['boards'][0]['nodes'] if n['data'].get('type') == 'plugin']
     assert len(htmls) == len(set(htmls)), f'{len(htmls) - len(set(htmls))} 張插件卡的 HTML 跟別張重複'
+
+@test
+def script_covers_all_vocab():
+    import script, vocab
+    s = script.load()
+    used = [i['word'] for sc in s['scenes'] for i in sc['items'] if i['kind'] == 'vocab']
+    words = [e['word'] for e in vocab.load()]
+    assert sorted(used) == sorted(words), set(words) ^ set(used)
+    for e in vocab.load():
+        if e['core']: assert s['explain'].get(e['word']), f"{e['word']} 沒有答錯解釋"
+    follows = [i['pair'] for sc in s['scenes'] for i in sc['items'] if i['kind'] == 'follow']
+    assert follows == [0, 1, 2, 3], follows
+
+@test
+def script_poem_quotes_exact():
+    import script, vocab, re
+    for sc in script.load()['scenes']:
+        for i in sc['items']:
+            if i['kind'] == 'line':
+                for q in re.findall(r'「([^」]{5,})」', i['text']):
+                    if any(c in q for c in '雞黍軒郭桑麻菊') and '，' in q:
+                        assert q.rstrip('。') in vocab.POEM, f'詩句引錯：{q}'
 
 if __name__ == '__main__': main()

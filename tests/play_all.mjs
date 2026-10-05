@@ -4,7 +4,10 @@ import { execFileSync } from 'node:child_process';
 execFileSync('python3', ['src/build.py'], { stdio: 'inherit' });
 const which = process.argv[2] || 'all';
 // 每個核心字解釋的第一句：對話框出現它就算進了一次解釋分支（預覽器側欄會列出卡片標題，不能用標題判斷）
-const EXPLAIN = JSON.parse(execFileSync('python3', ['-c', "import sys,json;sys.path.insert(0,'src');import script;print(json.dumps([v[0][1] for v in script.load()['explain'].values()], ensure_ascii=False))"]).toString());
+// 用解釋第二句的前 8 字（第一句多半是「沒關係」「再看一次」這種，主線也會出現）；開跑前先確認主線台詞裡沒有同樣的開頭
+const SCRIPT = JSON.parse(execFileSync('python3', ['-c', "import sys,json;sys.path.insert(0,'src');import script;s=script.load();print(json.dumps({'explain':[v[1][1] for v in s['explain'].values()],'main':[i['text'] for sc in s['scenes'] for i in sc['items'] if i['kind']=='line']}, ensure_ascii=False))"]).toString());
+const EXPLAIN = SCRIPT.explain.map(x => x.slice(0, 8));
+for (const x of EXPLAIN) if (SCRIPT.main.some(m => m.includes(x))) throw new Error('解釋開頭跟主線台詞撞了：' + x);
 async function boxText(ui) { for (const f of ui.page.frames()) { const b = f.locator('.vn2-box'); if (await b.count() && await b.first().isVisible()) return b.first().innerText(); } return ''; }
 const visible = async (f, sel) => f && await f.locator(sel).first().isVisible().catch(() => false);
 
@@ -19,7 +22,7 @@ async function run(mode) {   // right＝全對；wrong＝每個核心字第一�
       if (process.env.TRACE) console.log(step, 'BOX', (await boxText(ui)).slice(0, 40), '| T', t.split(' | ').slice(1).join(' | ').slice(0, 60));
       if (/學會了 \d+ 個字（一共 \d+ 個）/.test(t)) break;
       const body = t.split(' | ').slice(1).join(' ');   // 去掉預覽器側欄（卡片標題清單）
-      const hit = EXPLAIN.find(x => body.includes(x.slice(0, 4)));   // 台詞逐字打出，只比前四字
+      const hit = EXPLAIN.find(x => body.includes(x));
       if (hit && hit !== lastExplain) { explains++; lastExplain = hit; }
       const v = await ui.frameWith('button[data-ok]');
       if (await visible(v, 'button[data-ok]')) {

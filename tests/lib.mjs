@@ -19,7 +19,7 @@ export async function open(base, { mobile = false } = {}) {
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
-  await page.goto(base.startsWith('http') && base.includes('/preview/') ? base : base + '/');
+  await page.goto(/\/(preview|play)\//.test(base) ? base : base + '/');
   await sleep(3500);
   const text = async () => (await Promise.all(page.frames().map(f => f.locator('body').innerText().catch(() => '')))).join(' | ').replace(/\s+/g, ' ');
   const waitText = async (re, ms = 15000) => {

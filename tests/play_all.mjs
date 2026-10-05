@@ -1,7 +1,8 @@
 // 全路徑：node tests/play_all.mjs [right|wrong|all]
 import { serve, open, assert, sleep } from './lib.mjs';
 import { execFileSync } from 'node:child_process';
-execFileSync('python3', ['src/build.py'], { stdio: 'inherit' });
+// ONLINE=<larch.ink/play 網址> 時直接玩線上版，不在本機建置
+if (!process.env.ONLINE) execFileSync('python3', ['src/build.py'], { stdio: 'inherit' });
 const which = process.argv[2] || 'all';
 // 每個核心字解釋的第一句：對話框出現它就算進了一次解釋分支（預覽器側欄會列出卡片標題，不能用標題判斷）
 // 用解釋第二句的前 8 字（第一句多半是「沒關係」「再看一次」這種，主線也會出現）；開跑前先確認主線台詞裡沒有同樣的開頭
@@ -12,7 +13,7 @@ async function boxText(ui) { for (const f of ui.page.frames()) { const b = f.loc
 const visible = async (f, sel) => f && await f.locator(sel).first().isVisible().catch(() => false);
 
 async function run(mode) {   // right＝全對；wrong＝每個核心字第一次先答錯
-  const s = await serve('dist/project.json');
+  const s = process.env.ONLINE ? { base: process.env.ONLINE, kill() {} } : await serve('dist/project.json');
   const ui = await open(s.base, { mobile: true });
   const wrongDone = new Set(); let explains = 0, reviews = 0, lastExplain = '';
   try {

@@ -96,4 +96,63 @@ def recite_plan_rules():
         assert sorted(t for t in x['tiles'] if t in hidden) == sorted(allc[i] for i in x['hide'])
     assert recite_plan.plan(vocab.LINES) == r, '同 seed 要固定'
 
+def _built():
+    import build
+    return build.build()
+
+@test
+def build_flow():
+    p = _built()
+    b = p['boards'][0]
+    ids = {n['id'] for n in b['nodes']}
+    for need in ('v-jishu', 'x-jishu', 'f-0', 'order', 'recite', 'summary', 'r-jishu'):
+        assert need in ids, need
+    out = lambda a: [e for e in b['edges'] if e['source'] == a]
+    vj = out('v-jishu')
+    assert any(e.get('data', {}).get('condition', {}).get('variable') == 'last_ok' and e['target'] == 'x-jishu' for e in vj), vj
+    assert any('data' not in e for e in vj), '生字卡要有一條無條件的預設出口'
+    assert [e['target'] for e in out('x-jishu')] == ['v-jishu'], '解釋完回到同一張生字卡'
+    starts = [n for n in b['nodes'] if n['data'].get('start')]
+    assert len(starts) == 1
+
+@test
+def every_node_reaches_end():
+    p = _built(); b = p['boards'][0]
+    nxt = {}
+    for e in b['edges']: nxt.setdefault(e['source'], []).append(e['target'])
+    for n in b['nodes']:
+        seen, todo = set(), [n['id']]
+        while todo:
+            x = todo.pop()
+            if x in seen: continue
+            seen.add(x); todo += nxt.get(x, [])
+        assert 'summary' in seen, f"{n['id']} 走不到結算"
+
+@test
+def gate_matches_script():
+    import variables
+    for n in _built()['boards'][0]['nodes']:
+        d = n['data']
+        if d.get('type') != 'plugin': continue
+        s = json.loads(d['pluginValues']['script'])
+        if d['pluginCardId'] == 'vocab' and s.get('quiz'):
+            assert set(d['pluginWriteVars']) == {s['gotVar'], 'learned', 'last_ok'}, n['id']
+            assert set(d['pluginReadVars']) == {s['gotVar'], 'learned'}, n['id']
+        for v in d['pluginReadVars'] + d['pluginWriteVars']: assert v in variables.VARS, (n['id'], v)
+
+@test
+def vocab_cards_have_media():
+    for n in _built()['boards'][0]['nodes']:
+        d = n['data']
+        if d.get('pluginCardId') == 'vocab':
+            s = json.loads(d['pluginValues']['script'])
+            assert s['img'], n['id']
+            for o in s.get('options', []): assert o['img'], n['id']
+
+@test
+def plugin_html_unique_per_node():
+    # 相鄰兩張插件卡的 pluginHtml 一字不差時，播放器不會重載 iframe，第二張卡沿用第一張的畫面（2026-10-05 實測）
+    htmls = [n['data']['pluginHtml'] for n in _built()['boards'][0]['nodes'] if n['data'].get('type') == 'plugin']
+    assert len(htmls) == len(set(htmls)), f'{len(htmls) - len(set(htmls))} 張插件卡的 HTML 跟別張重複'
+
 if __name__ == '__main__': main()

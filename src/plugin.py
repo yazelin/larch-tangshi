@@ -39,11 +39,12 @@ def html(card_id):
 
 
 def card_node(card_id, node_id, script, read, write):
+    # HTML 尾端加節點 id：相鄰兩張卡 HTML 一樣時，播放器不重載 iframe，第二張會沿用第一張的畫面
     c = CARDS[card_id]
     return {'id': node_id, 'type': 'story', 'position': cards._pos(), 'data': {
         'type': 'plugin', 'title': c['name'], 'text': '', 'pluginId': PLUGIN_ID, 'pluginCardId': card_id,
         'pluginName': NAME, 'pluginCardName': c['name'], 'pluginVersion': VERSION, 'pluginIcon': 'book',
-        'pluginColor': COLOR, 'pluginHtml': html(card_id), 'pluginPresentation': c['presentation'],
+        'pluginColor': COLOR, 'pluginHtml': html(card_id) + f'<!-- {node_id} -->', 'pluginPresentation': c['presentation'],
         'pluginValues': {'script': json.dumps(script, ensure_ascii=False)}, 'pluginAssets': [],
         'pluginReadVars': list(read), 'pluginWriteVars': list(write), 'pluginSkippable': False,
         'pluginFrame': {'showTitle': False, 'showButton': False}, 'platforms': ['web']}}

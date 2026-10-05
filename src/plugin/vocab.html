@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:#fbf3e4;color:#2b2b2b;font-family:"Noto Sans TC",system-ui,sans-serif}
+/* 頂端留 12vh：播放器把插件卡 iframe 往上放約 10.5% 畫面高，頂端那段在螢幕外 */
+#card{position:absolute;inset:12vh 4vw 4vh;display:flex;flex-direction:column;align-items:center;gap:2vh}
+#head{display:flex;align-items:center;gap:3vw;cursor:pointer;border:0;background:none;padding:0}
+#word{font-family:"LXGW WenKai TC","BiauKai","DFKai-SB",serif;font-size:min(22vw,22vh);line-height:1;color:#2b2b2b}
+#zhuyin{writing-mode:vertical-rl;font-size:min(4.5vw,3.6vh);letter-spacing:.2em;color:#6b6257}
+#pic{width:min(40vw,26vh);aspect-ratio:1;object-fit:contain}
+#ask{font-size:min(5vw,3vh)}
+#opts{display:grid;grid-template-columns:repeat(3,1fr);gap:3vw;width:100%;max-width:720px}
+#opts button{min-width:44px;min-height:44px;border:3px solid #e2d6bd;border-radius:16px;background:#fff;padding:8px;font:inherit;font-size:min(4vw,2.4vh);display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer}
+#opts button img{width:100%;aspect-ratio:1;object-fit:contain}
+#opts button.right{border-color:#2f6b4f;background:#eaf5e4}
+#opts button.wrong{border-color:#c8553d;animation:shake .4s}
+@keyframes shake{25%{translate:-8px}75%{translate:8px}}
+#meaning{font-size:min(5.5vw,3.4vh);text-align:center;max-width:90%;display:none}
+#okBtn{display:none;min-width:120px;min-height:48px;border:0;border-radius:24px;background:#2f6b4f;color:#fff;font-family:inherit;font-weight:600;font-size:min(5vw,3vh);cursor:pointer}
+body.shown #meaning,body.shown #okBtn{display:block}
+body.shown #opts,body.shown #ask{display:none}
+</style></head>
+<body>
+<div id="card">
+  <button id="head" aria-label="聽發音"><span id="word"></span><span id="zhuyin"></span></button>
+  <img id="pic" alt="">
+  <div id="ask"></div>
+  <div id="opts"></div>
+  <div id="meaning"></div>
+  <button id="okBtn">好</button>
+</div>
+<script src="common.js"></script>
+<script>
+var S = {}, answered = false, $ = function (id) { return document.getElementById(id); };
+function show() { document.body.classList.add('shown'); }
+function answer(btn, ok) {
+  if (answered) return; answered = true;
+  var got = L.get(S.gotVar, -1);
+  L.set('last_ok', ok);
+  if (ok) {
+    btn.classList.add('right');
+    var next = got === -1 ? 1 : (S.review ? 2 : got);
+    if (next !== got) L.set(S.gotVar, next);
+    if (got === -1 || (got === 0 && S.review)) L.set('learned', L.get('learned', 0) + 1);
+    setTimeout(show, 500);
+  } else {
+    btn.classList.add('wrong');
+    if (got === -1) L.set(S.gotVar, 0);
+    if (S.retry) setTimeout(L.done, 800);
+    else { var r = document.querySelector('button[data-ok="1"]'); r && r.classList.add('right'); setTimeout(show, 900); }
+  }
+}
+L.onInit(function (s) {
+  S = s; document.body.dataset.review = S.review ? '1' : '0';
+  $('word').textContent = S.word; $('zhuyin').textContent = S.zhuyin;
+  $('pic').src = S.img || ''; $('meaning').textContent = S.word + '：' + S.meaning;
+  $('head').onclick = function () { L.play(S.audio); };
+  $('okBtn').onclick = function () { L.done(); };
+  if (!S.quiz) { show(); return; }
+  $('ask').textContent = S.ask;
+  (S.options || []).forEach(function (o) {
+    var b = document.createElement('button');
+    b.dataset.ok = o.ok ? '1' : '0';
+    b.innerHTML = '<img alt=""><span></span>'; b.querySelector('img').src = o.img; b.querySelector('span').textContent = o.label;
+    b.onclick = function () { answer(b, !!o.ok); };
+    $('opts').appendChild(b);
+  });
+  L.play(S.audio);
+});
+</script>
+</body></html>

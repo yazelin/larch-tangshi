@@ -815,7 +815,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#fbf3e4;color:#2b2b2b;
 #opts button.wrong{border-color:#c8553d;animation:shake .4s}
 @keyframes shake{25%{translate:-8px}75%{translate:8px}}
 #meaning{font-size:min(5.5vw,3.4vh);text-align:center;max-width:90%;display:none}
-#okBtn{display:none;min-width:120px;min-height:48px;border:0;border-radius:24px;background:#2f6b4f;color:#fff;font:600 min(5vw,3vh) inherit;cursor:pointer}
+#okBtn{display:none;min-width:120px;min-height:48px;border:0;border-radius:24px;background:#2f6b4f;color:#fff;font-family:inherit;font-weight:600;font-size:min(5vw,3vh);cursor:pointer}
 body.shown #meaning,body.shown #okBtn{display:block}
 body.shown #opts,body.shown #ask{display:none}
 </style></head>
@@ -934,7 +934,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#fbf3e4;font-family:"N
 .ch{font-family:"LXGW WenKai TC","BiauKai","DFKai-SB",serif;font-size:min(15vw,12vh);color:#b9ae9c;border:0;background:none;padding:0 2px;min-width:44px;min-height:44px;cursor:pointer;transition:none}
 .ch.lit{color:#2b2b2b;scale:1.08}
 #bar{display:flex;gap:4vw;visibility:hidden}
-#bar button{min-width:120px;min-height:48px;border-radius:24px;font:600 min(5vw,3vh) inherit;cursor:pointer}
+#bar button{min-width:120px;min-height:48px;border-radius:24px;font-family:inherit;font-weight:600;font-size:min(5vw,3vh);cursor:pointer}
 #again{border:2px solid #2f6b4f;background:#fff;color:#2f6b4f}
 #okBtn{border:0;background:#2f6b4f;color:#fff}
 #label{font-size:min(5vw,3vh);color:#6b6257}
@@ -1120,7 +1120,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#fbf3e4;font-family:"N
 .slot b{position:absolute;left:6px;top:6px;background:#2f6b4f;color:#fff;border-radius:50%;width:28px;height:28px;line-height:28px;font-size:16px}
 .slot.picked{border-color:#f2b33d}
 .slot.good{border-color:#2f6b4f}
-#okBtn{visibility:hidden;min-width:120px;min-height:48px;border:0;border-radius:24px;background:#2f6b4f;color:#fff;font:600 min(5vw,3vh) inherit}
+#okBtn{visibility:hidden;min-width:120px;min-height:48px;border:0;border-radius:24px;background:#2f6b4f;color:#fff;font-family:inherit;font-weight:600;font-size:min(5vw,3vh)}
 </style></head>
 <body>
 <div id="wrap"><div id="tip">點兩張圖交換位置，排成詩的順序</div><div id="grid"></div><button id="okBtn">好</button></div>
@@ -1168,7 +1168,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#fbf3e4;font-family:"N
 .tile.wrong{border-color:#c8553d;animation:shake .4s}
 @keyframes shake{25%{translate:-6px}75%{translate:6px}}
 #end{display:none;flex-direction:column;align-items:center;gap:2vh;font-size:min(6vw,4vh)}
-#okBtn{min-width:120px;min-height:48px;border:0;border-radius:24px;background:#2f6b4f;color:#fff;font:600 min(5vw,3vh) inherit}
+#okBtn{min-width:120px;min-height:48px;border:0;border-radius:24px;background:#2f6b4f;color:#fff;font-family:inherit;font-weight:600;font-size:min(5vw,3vh)}
 </style></head>
 <body>
 <div id="wrap"><div id="round"></div><div id="poem"></div><div id="tiles"></div>

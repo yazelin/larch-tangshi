@@ -25,6 +25,7 @@ SAMPLES['vocab'] = {
                            {'img': _PH, 'label': '一隻小雞', 'ok': False},
                            {'img': _PH, 'label': '白米飯', 'ok': False}]},
     'read': ['got_jishu', 'learned'], 'write': ['got_jishu', 'learned', 'last_ok']}
+SAMPLES['follow'] = {'script': {'lines': ['故人具雞黍', '邀我至田家'], 'audio': '', 'marks': []}, 'read': [], 'write': []}
 
 
 def html(card_id):

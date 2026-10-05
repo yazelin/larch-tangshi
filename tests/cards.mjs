@@ -82,4 +82,16 @@ cardTest('vocab', async (withCard, noInit) => {
   }, { mobile: true });
 });
 
+cardTest('follow', async (withCard, noInit) => {
+  await noInit('follow', '.ch');
+  await withCard('follow', async ui => {
+    const f = await ui.frameWith('.ch');
+    assert(await f.locator('.ch').count() === 10, '十個字');
+    await f.locator('#okBtn').waitFor({ state: 'visible', timeout: 12000 });
+    assert(await f.locator('.ch.lit').count() === 10, '念完十個字都點亮');
+    await sleep(300); await f.locator('#okBtn').click();
+    await ui.waitText(/RESULT/);
+  });
+});
+
 for (const [id, fn] of Object.entries(TESTS)) if (!only || only === id) await fn(withCard, noInit);

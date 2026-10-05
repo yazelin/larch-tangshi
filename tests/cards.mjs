@@ -97,6 +97,14 @@ cardTest('vocab', async (withCard, noInit) => {
     const t = await result(ui);
     assert(/got_jishu=2/.test(t) && /learned=1/.test(t), '複習答對：got=2、learned=1 ' + t);
   }, {}, { preset: { got_jishu: 0 }, patch: { review: true, retry: false } });
+  // 一切到生字卡就自動念一次（出題與只看的卡都要）
+  for (const quiz of [true, false]) {
+    await withCard('vocab', async ui => {
+      await ui.frameWith('#word'); await sleep(2500);
+      const got = ui.requests.filter(u => u.includes('audio/vocab/guo.mp3'));
+      assert(got.length >= 1, `${quiz ? '出題' : '只看'}的生字卡打開就自動念（載入音檔 ${got.length} 次）`);
+    }, {}, { patch: { audio: '/files/assets/audio/vocab/guo.mp3', quiz } });
+  }
   // iPhone：選項點擊區 ≥44px、沒有橫向捲動、大字在螢幕內
   await withCard('vocab', async ui => {
     const f = await ui.frameWith('button[data-ok]');

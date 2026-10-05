@@ -15,6 +15,8 @@ html,body{margin:0;height:100%;overflow:hidden;background:#fbf3e4;color:#2b2b2b;
 #opts button.right{border-color:#2f6b4f;background:#eaf5e4}
 #opts button.wrong{border-color:#c8553d;animation:shake .4s}
 @keyframes shake{25%{translate:-8px}75%{translate:8px}}
+#head.hint{animation:hint 1.2s ease-in-out 3}
+@keyframes hint{50%{scale:1.08}}
 #meaning{font-size:min(5.5vw,3.4vh);text-align:center;max-width:90%;display:none}
 #okBtn{display:none;min-width:120px;min-height:48px;border:0;border-radius:24px;background:#2f6b4f;color:#fff;font-family:inherit;font-weight:600;font-size:min(5vw,3vh);cursor:pointer}
 body.shown #meaning,body.shown #okBtn{display:block}
@@ -56,6 +58,8 @@ L.onInit(function (s) {
   $('pic').src = S.img || ''; $('meaning').textContent = S.word + '：' + S.meaning;
   $('head').onclick = function () { L.play(S.audio); };
   $('okBtn').onclick = function () { L.done(); };
+  /* 一打開先念一次；等 0.4 秒避開上一句台詞的尾音。被擋就讓大字閃一下，提示點字聽 */
+  setTimeout(function () { L.play(S.audio, 0, 0, function () { $('head').classList.add('hint'); }); }, 400);
   if (!S.quiz) { show(); return; }
   $('ask').textContent = S.ask;
   (S.options || []).forEach(function (o) {
@@ -65,7 +69,6 @@ L.onInit(function (s) {
     b.onclick = function () { answer(b, !!o.ok); };
     $('opts').appendChild(b);
   });
-  L.play(S.audio);
 });
 </script>
 </body></html>

@@ -53,7 +53,7 @@ async function run(mode) {   // right＝全對；wrong＝每個核心字第一�
         continue;
       }
       const ok = await ui.frameWith('#okBtn');
-      if (await visible(ok, '#okBtn')) { await sleep(300); await ok.locator('#okBtn').click(); await sleep(1200); continue; }
+      if (await visible(ok, '#okBtn')) { await sleep(300); await ok.locator('#okBtn').click({ timeout: 5000 }).catch(() => {}); await sleep(1200); continue; }   // 停的 0.3 秒內卡片可能已換掉
       await ui.advance(); await sleep(600);
     }
     const t = await ui.waitText(/學會了 \d+ 個字（一共 \d+ 個）/, 5000);

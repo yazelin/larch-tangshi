@@ -190,16 +190,19 @@ def script_expr_and_bg():
 
 @test
 def stage_per_line():
+    # 作者 2026-10-05 拍板：手機上四人擠不下，只站講話的人（置中）；旁白沿用上一位
     import build
     a = {'ch-meng-開心': 'M開', 'ch-meng-平常': 'M平', 'ch-ahe-平常': 'A平', 'ch-ahe-驚訝': 'A驚'}
     seen = []
+    st0 = build.stage_for(('', ''), seen, a)
     st1 = build.stage_for(('孟浩然', '開心'), seen, a)
     st2 = build.stage_for(('阿禾', '驚訝'), seen, a)
     st3 = build.stage_for(('', ''), seen, a)
-    assert [x['url'] for x in st1] == ['M開'], st1
-    assert {x['name']: x['url'] for x in st2} == {'孟浩然': 'M平', '阿禾': 'A驚'}, st2
-    assert {x['slot'] for x in st2} == {'right', 'farLeft'} and all(x['loop'] == 'breathe' for x in st2)
-    assert {x['name']: x['url'] for x in st3} == {'孟浩然': 'M平', '阿禾': 'A平'}, '旁白時大家回到平常'
+    assert st0 == [], '還沒有人開口前，旁白不站人'
+    assert [(x['name'], x['url'], x['slot']) for x in st1] == [('孟浩然', 'M開', 'center')], st1
+    assert [(x['name'], x['url']) for x in st2] == [('阿禾', 'A驚')], st2
+    assert [(x['name'], x['url']) for x in st3] == [('阿禾', 'A平')], '旁白時沿用上一位、回到平常'
+    assert st2[0]['loop'] == 'breathe'
 
 @test
 def cg_background_clears_stage():
@@ -210,5 +213,14 @@ def cg_background_clears_stage():
     assert len(cards_on_cg) >= 4, f'四聯各要有一張 CG 背景卡，現在 {len(cards_on_cg)}'
     for n in cards_on_cg:
         assert all(not l.get('stage', {}).get('actors') for l in n['data']['dialogueLines']), n['id']
+
+@test
+def title_and_cover():
+    import art
+    p = _built()
+    assert p['name'] == '唐詩小旅行：過故人莊'
+    assert p['description'].startswith('阿禾和小樂') and len(p['description']) < 1200
+    a = art.paths()
+    assert p['settings']['titleCoverImage'] == a['cg-5'] and p['settings']['projectThumbnail'] == a['cg-5']
 
 if __name__ == '__main__': main()

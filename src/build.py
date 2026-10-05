@@ -30,20 +30,19 @@ def vocab_node(e, a, entries, node_id, review=False):
         return plugin.card_node('vocab', node_id, s, read=[g, 'learned'], write=[g, 'learned', 'last_ok'])
     return plugin.card_node('vocab', node_id, s, read=[], write=[])
 
-SLOT = {'阿禾': 'farLeft', '小樂': 'left', '孟浩然': 'right', '故人': 'farRight'}
-
-
 def stage_for(who, seen, a):
-    """一句台詞的站位：這一幕到這句為止開過口的人都在台上，講話的人換成他標的表情。seen 會被更新。"""
+    """一句台詞的站位：只站講話的人（置中，換成他標的表情）；旁白時沿用上一位、回到平常。
+    作者 2026-10-05 拍板：手機直式畫面四人全身擠不下。seen 記這一幕最後開口的人。"""
     sp, expr = who
-    if sp in SLOT and sp not in seen: seen.append(sp)
-    actors = []
-    for name in seen:
-        ex = expr if (name == sp and expr) else '平常'
-        url = a.get(f'ch-{art.CAST[name]}-{ex}') or a.get(f'ch-{art.CAST[name]}-平常')
-        if url: actors.append({'id': f'actor-{art.CAST[name]}', 'url': url, 'name': name, 'slot': SLOT[name],
-                               'scale': 0.96, 'offsetX': 0, 'offsetY': 0, 'enter': 'fade', 'loop': 'breathe'})
-    return actors
+    if sp in art.CAST: seen[:] = [sp]
+    else: expr = ''
+    if not seen: return []
+    name = seen[0]
+    cid = art.CAST[name]
+    url = a.get(f'ch-{cid}-{expr or "平常"}') or a.get(f'ch-{cid}-平常')
+    if not url: return []
+    return [{'id': f'actor-{cid}', 'url': url, 'name': name, 'slot': 'center',
+             'scale': 0.96, 'offsetX': 0, 'offsetY': 0, 'enter': 'fade', 'loop': 'breathe'}]
 
 
 def build():
@@ -55,6 +54,9 @@ def build():
     p['settings']['plugins'][plugin.PLUGIN_ID] = plugin.settings_entry()
     p['settings'].update({'stageFit': 'auto', 'keepActorsInFrame': False, 'cgGalleryEnabled': False})
     a = art.paths()
+    p['name'] = '唐詩小旅行：過故人莊'
+    p['description'] = (ROOT / 'poems/guo-guren-zhuang/簡介.md').read_text().strip()
+    p['settings']['titleCoverImage'] = p['settings']['projectThumbnail'] = a['cg-5']   # 開場那張，上方留了標題空間
     sc = script.load()
     entries = vocab.load()
     by_word = {e['word']: e for e in entries}

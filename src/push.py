@@ -68,20 +68,31 @@ def _git(*args):
     return subprocess.run(['git', *args], cwd=ROOT, capture_output=True, text=True, check=True).stdout
 
 
-def cdn_url(rel, sha):
+def repo_path(rel):
     """/files/assets/<rel> 對應的 repo 路徑：placeholder/ 在 assets/，art/、audio/ 在詩的資料夾。"""
-    path = f'assets/{rel}' if rel.startswith('placeholder/') else f'{POEM_DIR}/{rel}'
-    return f'https://cdn.jsdelivr.net/gh/{REPO}@{sha}/{path}'
+    return f'assets/{rel}' if rel.startswith('placeholder/') else f'{POEM_DIR}/{rel}'
+
+
+def cdn_url(rel, sha):
+    return f'https://cdn.jsdelivr.net/gh/{REPO}@{sha}/{repo_path(rel)}'
 
 
 def to_cdn(text):
-    """把 /files/assets/… 換成釘在目前 commit 的 jsDelivr 網址。素材沒 commit、或 commit 還沒推上 GitHub 就中止。"""
+    """把 /files/assets/… 換成 jsDelivr 網址，每個檔釘在它自己最後一次改動的 commit：
+    沒改的檔網址不變，jsDelivr 快取一直是熱的（釘 HEAD 的話每推一次 201 個檔全部要冷抓）。
+    素材沒 commit、或 HEAD 還沒推上 GitHub 就中止。"""
     sha = _git('rev-parse', 'HEAD').strip()
     dirty = [l for l in _git('status', '--porcelain', '--', 'assets', POEM_DIR).splitlines() if l.strip()]
     if dirty: raise SystemExit(f'素材有沒 commit 的變更，jsDelivr 抓不到：{dirty[:5]}')
     if not _git('branch', '-r', '--contains', sha).strip():
         raise SystemExit(f'{sha[:7]} 還沒推上 GitHub，jsDelivr 抓不到；先 git push')
-    return re.sub(r'/files/assets/([\w./-]+\.(?:png|webp|jpg|mp3))', lambda m: cdn_url(m.group(1), sha), text)
+    last = {}
+    def pin(m):
+        rel = m.group(1)
+        if rel not in last: last[rel] = _git('log', '-1', '--format=%H', '--', repo_path(rel)).strip()
+        if not last[rel]: raise SystemExit(f'{repo_path(rel)} 沒有 commit 紀錄')
+        return cdn_url(rel, last[rel])
+    return re.sub(r'/files/assets/([\w./-]+\.(?:png|webp|jpg|mp3))', pin, text)
 
 
 def prewarm(text):

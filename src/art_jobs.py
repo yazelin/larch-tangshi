@@ -6,7 +6,10 @@ ART = ROOT / 'poems/guo-guren-zhuang/art'
 GEN = pathlib.Path('~/.claude/skills/codex-imagegen/codex-imagegen.sh').expanduser()
 STYLE = ("Style: soft watercolor children's picture-book illustration, gentle pencil outlines, warm natural palette, "
          "Tang dynasty Chinese countryside in early autumn. Simple rural farmhouses with thatched roofs and earthen walls, "
-         "no red pillars, no palace architecture. No text, no letters, no watermark.")
+         "no red pillars, no palace architecture. "
+         # 唐朝沒有美洲作物：CG1、CG3 都畫出掛玉米、南瓜、萬壽菊；樹上果實也被畫成桑椹（季節不對）
+         "Historically accurate for Tang China: absolutely no corn or maize, no pumpkins, no chili peppers, no potatoes, "
+         "no tomatoes, no marigolds; trees have leaves only, no fruit or berries. No text, no letters, no watermark.")
 BG = {
     'study': 'A quiet modern elementary school library after class, wooden shelves, warm late-afternoon light, one old book on a table glowing softly. No people.',
     'gate': 'A Tang dynasty farmhouse with a thick thatched roof and earthen yellow walls, a low gate and fence woven from bamboo and twigs, a packed dirt path leading to the gate, trees with a few yellowing leaves. No people.',
@@ -42,12 +45,14 @@ VOCAB = {
 
 # 立繪：四人共用青色幕（綠會吃掉小樂的裙子、洋紅離阿禾的紅鞋太近），之後用 cutout 去背
 KEY = '#00FFFF'
+# 阿禾的深藍短褲會被青色幕吃掉（2026-10-05 實測：身體內部半透明 2.4 萬 px），他改綠幕；身上沒有綠
+KEYS = {'ahe': '#00FF00'}
 CAST = {'阿禾': 'ahe', '小樂': 'xiaole', '孟浩然': 'meng', '故人': 'guren'}
 EXPRS = {'平常': 'calm neutral friendly expression, arms relaxed',
          '開心': 'big happy smile, one hand slightly raised in a cheerful gesture',
          '驚訝': 'surprised expression with wide eyes and open mouth, both hands raised a little',
          '想事情': 'thinking expression, looking slightly up, one finger touching the chin'}
-CHAR_RULES = (f'Full body standing, facing slightly toward the viewer. Background: one flat solid pure cyan {KEY} color '
+CHAR_RULES = ('Full body standing, facing slightly toward the viewer. Background: one flat solid pure {color} color '
               'filling the whole canvas, even lighting, crisp edges. No shadow, no ground, no gradient, no vignette, '
               'no reflection, the character does not touch any edge of the picture. Portrait 2:3.')
 # 劇情 CG：present 是在場角色，產圖時一律附上這些人的定錨（CG 一定帶在場角色定錨）
@@ -57,9 +62,9 @@ CG = {
     2: {'present': ['孟浩然', '故人', '阿禾', '小樂'],
         'scene': 'On a small earthen hill, the poet (image 1), the old farmer (image 2) and the two children (image 3, image 4) are seen from behind looking down at a village encircled by a ring of green trees; far away a long earthen outer city wall, and behind it a blue-green mountain slope lying diagonally.'},
     3: {'present': ['孟浩然', '故人', '阿禾', '小樂'],
-        'scene': 'Inside a simple farmhouse by a wooden window pushed open: the poet (image 1) and the old farmer (image 2) sit at a low table, each holding a small pottery wine cup in one hand, chatting happily; the two children (image 3, image 4) eat from pottery bowls. Through the window: half green vegetable beds, half flat packed earth with drying grain; mulberry trees outside.'},
+        'scene': 'Inside a simple farmhouse by a wooden window pushed open: the poet (image 1) and the old farmer (image 2) sit at a low table, each holding a small pottery wine cup in one hand, chatting happily; the two children (image 3, image 4) eat with chopsticks from pottery bowls filled with pale yellow sticky millet (not white rice); on the table a plate of stewed chicken and a plate of green vegetables. Through the window: half green vegetable beds, half flat packed earth with drying grain; mulberry trees outside.'},
     4: {'present': ['孟浩然', '故人', '阿禾', '小樂'],
-        'scene': 'At golden sunset beside a bamboo fence lined with chrysanthemum plants in tight buds, the poet (image 1) and the old farmer (image 2) smile and make a promise to meet again; the two children (image 3, image 4) stand next to them looking at the buds.'},
+        'scene': 'At golden sunset beside a bamboo fence lined with chrysanthemum plants in tight buds, the poet (image 1) and the old farmer (image 2) face each other and bow slightly with cupped hands in the traditional Chinese gongshou salute (no handshake), smiling as they promise to meet again; the two children (image 3, image 4) stand next to them looking at the buds.'},
     5: {'present': ['阿禾', '小樂'],
         'scene': 'In a quiet modern school library, the two children (image 1, image 2) open an old glowing book; golden Chinese-style brush strokes swirl up out of the pages around them like wind. Leave calm empty space in the upper third for a title.'},
 }
@@ -82,7 +87,9 @@ if __name__ == '__main__':
     if kind == 'char':
         for name, cid in CAST.items():
             for ex, desc in EXPRS.items():
-                gen(f'The exact same character as image 1: same face, hair, outfit, colors and proportions. {desc}. {CHAR_RULES} '
+                key = KEYS.get(cid, KEY)
+                rules = CHAR_RULES.replace('{color}', ('green ' if key == '#00FF00' else 'cyan ') + key)
+                gen(f'The exact same character as image 1: same face, hair, outfit, colors and proportions. {desc}. {rules} '
                     "Style: soft watercolor children's picture-book illustration, gentle pencil outlines. No text, no watermark.",
                     ART / 'char' / 'raw' / f'{cid}-{ex}.png', [ANCHOR(name)])
     if kind == 'cg':

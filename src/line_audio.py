@@ -20,7 +20,9 @@ def spoken(text):
 
 def job(speaker, expr, text):
     who = speaker or '旁白'
-    emotion = CFG['emotions']['旁白'] if who == '旁白' else CFG['emotions'].get(expr, 'neutral')
+    if who == '旁白': emotion = CFG['emotions']['旁白']
+    elif expr: emotion = CFG['emotions'].get(expr, 'neutral')
+    else: emotion = CFG.get('defaults', {}).get(who, 'neutral')   # 沒標表情時用角色的預設情緒
     say = spoken(text)
     voice = CFG['voices'][who]
     h = hashlib.sha256('\n'.join((who, voice, emotion, say)).encode()).hexdigest()[:16]

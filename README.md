@@ -22,7 +22,7 @@
 | `poems/guo-guren-zhuang/art/`、`audio/` | 背景、CG、生字圖、立繪；生字與跟念音檔 |
 | `src/plugin/` | 自製插件 tangshi-kit：生字卡、跟著念、四張圖排順序、背誦闖關 |
 | `src/build.py` | 讀劇本與生字資料，組出 `dist/project.json` |
-| `src/push.py` | 推上 Larch：快照、上傳、整包 PUT、讀回比對 |
+| `src/push.py` | 推上 Larch：快照、素材換成 jsDelivr 網址、整包 PUT、讀回比對、預熱 |
 | `docs/specs/`、`docs/plans/` | 設計規格與實作計劃 |
 
 ## 指令
@@ -36,7 +36,7 @@
     python3 src/art_jobs.py [bg|vocab|char|cg]             # 產圖（本機 codex）
     python3 src/standees.py                                # 立繪去背、統一畫布
     python3 src/vocab_audio.py                             # 生字與跟念音檔（larch-tts-bridge）
-    python3 src/push.py "改了什麼"                          # 推上 Larch（發佈要作者在網頁按）
+    python3 src/push.py "改了什麼"                          # 推上 Larch：素材走 jsDelivr（先 commit 並 git push），發佈要作者在網頁按
 
 下一首詩：在 `poems/` 開新資料夾，放 `script.md`、`vocab.json`、`考證.md`，插件與建置不用改。
 

@@ -6,6 +6,8 @@ POEM = ROOT / 'poems/guo-guren-zhuang'
 BGS = ('study', 'gate', 'road', 'room', 'fence')
 CAST = {'阿禾': 'ahe', '小樂': 'xiaole', '孟浩然': 'meng', '故人': 'guren'}
 EXPRS = ('平常', '開心', '驚訝', '想事情')
+# 立繪檔名用英文：jsDelivr 對中文路徑回 404
+EXPR_FILE = {'平常': 'normal', '開心': 'happy', '驚訝': 'surprised', '想事情': 'think'}
 
 
 def _pick(rel, fallback):
@@ -20,7 +22,7 @@ def paths():
     a.update({f'cg-{i}': _pick(f'art/cg/{i}', '/files/assets/placeholder/cg.png') for i in range(1, 6)})
     for cid in CAST.values():   # 立繪：沒有正式檔就不放（不給佔位圖，舞台空著）
         for ex in EXPRS:
-            u = _pick(f'art/char/{cid}-{ex}', '')
+            u = _pick(f'art/char/{cid}-{EXPR_FILE[ex]}', '')
             if u: a[f'ch-{cid}-{ex}'] = u
     for e in vocab.load():
         a[f"v-{e['id']}"] = _pick(f"art/vocab/{e['id']}", '/files/assets/placeholder/vocab.png')

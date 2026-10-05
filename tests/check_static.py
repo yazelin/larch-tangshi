@@ -246,6 +246,9 @@ def line_audio_spoken():
     j = line_audio.job('小樂', '驚訝', '好。')
     assert j['voice'].endswith('ExplorativeGirl') and j['emotion'] == 'surprised' and j['file'].endswith('.mp3')
     assert line_audio.job('', '', '風吹過來。')['emotion'] == 'calm', '旁白用 calm'
+    assert line_audio.job('故人', '', '請進。')['emotion'] == 'happy', '沒標表情時用角色預設情緒'
+    assert line_audio.job('故人', '驚訝', '咦？')['emotion'] == 'surprised', '有標表情照標的'
+    assert line_audio.job('小樂', '', '好。')['emotion'] == 'neutral'
 
 @test
 def build_attaches_line_audio():
@@ -262,5 +265,13 @@ def build_attaches_line_audio():
         assert hit[0][0]['data'].get('voiceMode') == 'ai', '有語音的卡要打開 voiceMode'
     finally:
         if made: f.unlink()
+
+@test
+def asset_paths_ascii():
+    # jsDelivr 的 gh 路由對中文檔名回 404（GitHub raw 正常），2026-10-06 實測
+    import re
+    blob = json.dumps(_built(), ensure_ascii=False)
+    bad = sorted({u for u in re.findall(r'/files/assets/[^"\\]+', blob) if not u.isascii()})
+    assert not bad, bad[:5]
 
 if __name__ == '__main__': main()

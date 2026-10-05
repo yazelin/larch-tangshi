@@ -5,6 +5,8 @@ import { mkdirSync } from 'node:fs';
 
 const only = process.argv[2];
 const TESTS = {};
+// 「好」按鈕剛出現時立刻點，偶爾會點在版面還在變的那一刻而沒觸發（1/6）。等卡片翻好再停 0.3 秒，跟真人一樣。
+async function clickOk(f) { await f.locator('body.shown').waitFor(); await sleep(300); await f.locator('#okBtn').click(); }
 function cardTest(id, fn) { TESTS[id] = fn; }
 
 async function withCard(id, fn, opts, { preset, patch } = {}) {
@@ -46,7 +48,7 @@ cardTest('vocab', async (withCard, noInit) => {
     const f = await ui.frameWith('button[data-ok]');
     const ok = f.locator('button[data-ok="1"]');
     await ok.click(); await ok.click({ force: true }).catch(() => {});
-    await f.locator('#okBtn').click();
+    await clickOk(f);
     const t = await result(ui);
     assert(/got_jishu=1/.test(t) && /learned=1/.test(t) && /last_ok=true/.test(t), '答對：got=1、learned=1（連點只算一次）' + t);
   });
@@ -60,14 +62,14 @@ cardTest('vocab', async (withCard, noInit) => {
   // 主線錯過再答對（解釋完回來重答）：got 停在 0、learned 不加
   await withCard('vocab', async ui => {
     const f = await ui.frameWith('button[data-ok]');
-    await f.locator('button[data-ok="1"]').click(); await f.locator('#okBtn').click();
+    await f.locator('button[data-ok="1"]').click(); await clickOk(f);
     const t = await result(ui);
     assert(/got_jishu=0/.test(t) && /learned=0/.test(t), '主線錯過再答對：got=0、learned=0 ' + t);
   }, {}, { preset: { got_jishu: 0 } });
   // 複習卡答對：got 0 → 2，learned +1
   await withCard('vocab', async ui => {
     const f = await ui.frameWith('button[data-ok]');
-    await f.locator('button[data-ok="1"]').click(); await f.locator('#okBtn').click();
+    await f.locator('button[data-ok="1"]').click(); await clickOk(f);
     const t = await result(ui);
     assert(/got_jishu=2/.test(t) && /learned=1/.test(t), '複習答對：got=2、learned=1 ' + t);
   }, {}, { preset: { got_jishu: 0 }, patch: { review: true, retry: false } });

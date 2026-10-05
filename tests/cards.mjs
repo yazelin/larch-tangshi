@@ -108,6 +108,14 @@ cardTest('follow', async (withCard, noInit) => {
     await sleep(300); await f.locator('#okBtn').click();
     await ui.waitText(/RESULT/);
   });
+  // 音檔載入失敗（404）也不能卡死：照樣逐字點亮、出現「好」
+  await withCard('follow', async ui => {
+    const f = await ui.frameWith('.ch');
+    await f.locator('#okBtn').waitFor({ state: 'visible', timeout: 12000 });
+    assert(await f.locator('.ch.lit').count() === 10, '音檔 404：十個字照樣點亮、出現「好」');
+    await sleep(300); await f.locator('#okBtn').click();
+    await ui.waitText(/RESULT/);
+  }, undefined, { patch: { audio: '/files/assets/nope.mp3' } });
 });
 
 cardTest('order', async (withCard, noInit) => {

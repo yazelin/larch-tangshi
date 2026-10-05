@@ -22,15 +22,20 @@ function run() {
   timers.forEach(clearTimeout); timers = [];
   chars.forEach(function (c) { c.classList.remove('lit'); });
   document.getElementById('bar').style.visibility = 'hidden';
-  var a = L.play(S.audio);
+  var a = L.play(S.audio), went = false;
   function go(marks, total) {
+    if (went) return; went = true;
     marks.forEach(function (t, i) { timers.push(setTimeout(function () { chars[i].classList.add('lit'); }, t * 1000)); });
     timers.push(setTimeout(function () { document.getElementById('bar').style.visibility = 'visible'; }, total * 1000));
   }
   var n = chars.length;
   if (S.marks && S.marks.length === n) { go(S.marks, (a && a.duration) || S.marks[n - 1] + 0.8); return; }
-  if (a) a.addEventListener('loadedmetadata', function () { var d = a.duration; go(chars.map(function (_, i) { return d * i / n; }), d); });
-  else go(chars.map(function (_, i) { return i * 0.5; }), n * 0.5);
+  function plain() { go(chars.map(function (_, i) { return i * 0.5; }), n * 0.5); }
+  if (!a) { plain(); return; }
+  a.addEventListener('loadedmetadata', function () { var d = a.duration; go(chars.map(function (_, i) { return d * i / n; }), d); });
+  // 音檔 404、斷網、手機不給載：照樣點亮、出現「好」，不能卡死
+  a.addEventListener('error', plain);
+  timers.push(setTimeout(plain, 4000));
 }
 L.onInit(function (s) {
   S = s;

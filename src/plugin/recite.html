@@ -21,7 +21,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#fbf3e4;font-family:"N
 <div id="end"><div id="starsTxt"></div><button id="okBtn">好</button></div></div>
 <script src="common.js"></script>
 <script>
-var S, r = 0, miss = 0, stars = 0;
+var S, r = 0, miss = 0, stars = 0, allc = '';
 function round() {
   var R = S.rounds[r]; miss = 0;
   document.getElementById('round').textContent = '第 ' + (r + 1) + ' 關，共 3 關';
@@ -36,8 +36,18 @@ function round() {
     });
     poem.appendChild(d);
   });
+  lineTiles();
+}
+/* 一次只給「下一個空格所在那一句」的字塊加干擾字：第三關全遮有 43 塊，手機直式放不下（手指捲不動） */
+function lineTiles() {
+  var R = S.rounds[r], blank = document.querySelector('.blank:not(.filled)'); if (!blank) return;
+  var line = Math.floor(+blank.dataset.i / 5), need = {}, decoy = {};
+  R.hide.forEach(function (i) { var c = allc[i]; if (Math.floor(i / 5) === line && !document.querySelector('.blank[data-i="' + i + '"].filled')) need[c] = (need[c] || 0) + 1; });
+  var hidden = {}; R.hide.forEach(function (i) { hidden[allc[i]] = (hidden[allc[i]] || 0) + 1; });
+  R.tiles.forEach(function (c) { if (hidden[c]) hidden[c]--; else decoy[c] = (decoy[c] || 0) + 1; });
   var tiles = document.getElementById('tiles'); tiles.innerHTML = '';
-  R.tiles.forEach(function (c) {
+  R.tiles.forEach(function (c) {   // 沿用 recite_plan 排好的順序，每次一樣
+    if (need[c]) need[c]--; else if (decoy[c]) decoy[c]--; else return;
     var b = document.createElement('button'); b.className = 'tile'; b.dataset.ch = c; b.textContent = c;
     b.onclick = function () { pick(b); }; tiles.appendChild(b);
   });
@@ -46,7 +56,9 @@ function pick(b) {
   var blank = document.querySelector('.blank:not(.filled)'); if (!blank) return;
   if (b.dataset.ch === blank.dataset.ch) {
     blank.textContent = b.dataset.ch; blank.classList.add('filled'); b.classList.add('used');
-    if (!document.querySelector('.blank:not(.filled)')) {
+    var next = document.querySelector('.blank:not(.filled)');
+    if (next && Math.floor(+next.dataset.i / 5) !== Math.floor(+blank.dataset.i / 5)) lineTiles();   // 換句換字塊
+    if (!next) {
       if (miss <= 2) stars += 1;
       r += 1;
       if (r < S.rounds.length) setTimeout(round, 700); else setTimeout(finish, 700);
@@ -62,6 +74,6 @@ function finish() {
   document.getElementById('starsTxt').textContent = '得到 ' + stars + ' 顆星';
   document.getElementById('end').style.display = 'flex';
 }
-L.onInit(function (s) { S = s; document.getElementById('okBtn').onclick = function () { L.done(); }; round(); });
+L.onInit(function (s) { S = s; allc = S.lines.join(''); document.getElementById('okBtn').onclick = function () { L.done(); }; round(); });
 </script>
 </body></html>

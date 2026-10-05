@@ -12,6 +12,14 @@ async function assertOnScreen(f, sel, label) {
   const top = await f.locator(sel).first().evaluate(e => e.getBoundingClientRect().top);
   assert(box.y + top >= 0, `${label}：${sel} 頂端在螢幕內（${Math.round(box.y + top)}px）`);
 }
+// 手指捲不動 overflow:hidden；看得到的字塊都要在 iframe 可見區（扣掉頂端偏移）與畫面內
+async function assertTilesVisible(ui, f, label) {
+  const box = await (await f.frameElement()).boundingBox();
+  const vh = await ui.page.evaluate(() => innerHeight);
+  const bottoms = await f.locator('.tile:not(.used)').evaluateAll(ts => ts.map(t => t.getBoundingClientRect().bottom));
+  const worst = Math.max(...bottoms) + box.y;
+  assert(worst <= Math.min(vh, box.y + box.height), `${label}：字塊都在畫面內（最低 ${Math.round(worst)} / ${vh}）`);
+}
 async function clickOk(f) { await f.locator('body.shown').waitFor(); await sleep(300); await f.locator('#okBtn').click(); }
 function cardTest(id, fn) { TESTS[id] = fn; }
 
@@ -125,6 +133,7 @@ cardTest('recite', async (withCard, noInit) => {
     await assertOnScreen(f, '#round', 'iPhone 背誦卡');
     let wrongOnce = false;
     while (await f.locator('.blank:not(.filled)').count()) {
+      await assertTilesVisible(ui, f, 'iPhone 背誦 ' + await f.locator('#round').innerText());
       const need = await f.locator('.blank:not(.filled)').first().getAttribute('data-ch');
       if (!wrongOnce) { await f.locator(`.tile:not([data-ch="${need}"])`).first().click(); wrongOnce = true; }
       await f.locator(`.tile[data-ch="${need}"]:not(.used)`).first().click();

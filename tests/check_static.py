@@ -235,4 +235,32 @@ def follow_marks_from_audio():
         assert len(m) == 10 and all(b > a for a, b in zip(m, m[1:])), (n['id'], m)
         assert m[5] - m[4] > (m[4] - m[0]) / 4 * 1.3, f"{n['id']} 沒抓到逗號停頓：{m}"
 
+@test
+def line_audio_spoken():
+    import line_audio
+    sp = line_audio.spoken
+    assert sp('所以我說「青山郭外斜」。這個「斜」，在詩裡念ㄒㄧㄚˊ') == '所以我說「青山鍋外霞」。這個「霞」，在詩裡念霞'
+    assert sp('那座山斜斜地躺在那裡') == '那座山斜斜地躺在那裡', '一般的斜斜地不換'
+    assert sp('「還」在這裡念ㄏㄞˊ，是「再一次」的意思嗎？') == '「孩」在這裡念孩，是「再一次」的意思嗎？'
+    assert sp('曬穀子、打穀子的平地叫「場」。') == '曬穀子、打穀子的平地叫「腸」。'
+    j = line_audio.job('小樂', '驚訝', '好。')
+    assert j['voice'].endswith('ExplorativeGirl') and j['emotion'] == 'surprised' and j['file'].endswith('.mp3')
+    assert line_audio.job('', '', '風吹過來。')['emotion'] == 'calm', '旁白用 calm'
+
+@test
+def build_attaches_line_audio():
+    import line_audio, tempfile, pathlib, build
+    jobs = line_audio.all_jobs()
+    first = jobs[0]
+    f = line_audio.OUT / first['file']
+    made = not f.exists()
+    if made: f.parent.mkdir(parents=True, exist_ok=True); f.write_bytes(b'ID3')
+    try:
+        nodes = build.build()['boards'][0]['nodes']
+        hit = [(n, l) for n in nodes if n['data'].get('type') == 'dialogue' for l in n['data']['dialogueLines'] if l.get('voiceUrl', '').endswith(first['file'])]
+        assert hit, '有音檔的台詞要帶 voiceUrl'
+        assert hit[0][0]['data'].get('voiceMode') == 'ai', '有語音的卡要打開 voiceMode'
+    finally:
+        if made: f.unlink()
+
 if __name__ == '__main__': main()

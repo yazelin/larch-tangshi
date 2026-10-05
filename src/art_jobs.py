@@ -12,7 +12,7 @@ BG = {
     'gate': 'A Tang dynasty farmhouse with a thick thatched roof and earthen yellow walls, a low gate and fence woven from bamboo and twigs, a packed dirt path leading to the gate, trees with a few yellowing leaves. No people.',
     'road': 'View from a small earthen hill: a village of thatched farmhouses encircled by a ring of green trees; beyond the fields in the distance a long earthen outer city wall; behind it a blue-green mountain slope lying diagonally across the horizon. No people.',
     'room': 'Inside a simple Tang dynasty farmhouse: earthen walls, a low wooden table with pottery bowls, a wooden window pushed open; through the window a flat yard, half of it rows of green vegetable beds, half of it smooth packed yellow earth with grain spread out to dry and a bamboo rake leaning nearby. No people.',
-    'fence': 'A bamboo fence beside a thatched farmhouse at golden sunset, many chrysanthemum plants along the fence with tight green buds just starting to show yellow, a few mulberry trees nearby. No people.',
+    'fence': 'A bamboo fence beside a thatched farmhouse at golden sunset, many chrysanthemum plants along the fence with tight green buds just starting to show yellow. Trees have only leaves: no fruit, no berries anywhere (early autumn). No people.',
 }
 VOCAB = {
     'guo': 'A traveler in a plain Tang robe arriving at a farmhouse bamboo gate, seen from behind, visiting.',

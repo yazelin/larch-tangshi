@@ -4,7 +4,7 @@ jsDelivr 熱快取 0.1～0.2 秒。素材要先 commit 並推上 GitHub，jsDeli
 
     python3 src/push.py "這次改了什麼"
 """
-import json, os, re, sys, time, base64, pathlib, urllib.request, urllib.error
+import json, os, re, sys, time, base64, pathlib, urllib.request, urllib.error, urllib.parse
 sys.path.insert(0, os.path.dirname(__file__))
 import build
 
@@ -89,14 +89,17 @@ def prewarm(text):
     from concurrent.futures import ThreadPoolExecutor
     urls = sorted(set(re.findall(r'https://cdn\.jsdelivr\.net/gh/[^"\\]+', text)))
     def get(u):
-        try:
-            with _open(urllib.request.Request(u, headers={'User-Agent': 'Mozilla/5.0'}), timeout=60) as r: return r.status
-        except urllib.error.HTTPError as e: return e.code
-        except Exception: return 0
+        q = urllib.parse.quote(u, safe=':/@')
+        for t in range(2):   # 冷快取第一次可能要 40 秒以上
+            try:
+                with _open(urllib.request.Request(q, headers={'User-Agent': 'Mozilla/5.0'}), timeout=120) as r: return r.status
+            except urllib.error.HTTPError as e: code = e.code
+            except Exception: code = 0
+        return code
     with ThreadPoolExecutor(8) as ex: codes = list(ex.map(get, urls))
     bad = [u for u, c in zip(urls, codes) if c != 200]
     print(f'預熱 jsDelivr：{len(urls) - len(bad)}/{len(urls)} 個檔回 200', flush=True)
-    if bad: raise SystemExit(f'jsDelivr 抓不到：{bad[:5]}')
+    if bad: raise SystemExit(f'專案已經推上去了，但這些檔 jsDelivr 抓不到（玩家會看不到）：{bad[:5]}')
 
 
 def content_key(board):

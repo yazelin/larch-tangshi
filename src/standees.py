@@ -4,6 +4,8 @@
 import pathlib, subprocess, sys, tempfile
 import numpy as np
 from PIL import Image
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import art
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 CHAR = ROOT / 'poems/guo-guren-zhuang/art/char'
 CUT = pathlib.Path('~/.claude/skills/cutout/cutout.py').expanduser()
@@ -44,5 +46,6 @@ if __name__ == '__main__':
             out = pathlib.Path(tmp) / 'p.png'
             place(Image.open(k).convert('RGBA'), cid).save(out)
             subprocess.run([sys.executable, str(CUT), 'despill', str(out), '--key', key, '-o', str(out)], check=True, capture_output=True)
-            Image.open(out).save(CHAR / f'{raw.stem}.webp', quality=90, method=6)
+            ex = raw.stem.split('-', 1)[1]
+            Image.open(out).save(CHAR / f'{cid}-{art.EXPR_FILE[ex]}.webp', quality=90, method=6)   # 英文檔名，jsDelivr 才抓得到
             print('wrote', raw.stem, flush=True)

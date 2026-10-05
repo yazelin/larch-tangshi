@@ -266,4 +266,12 @@ def build_attaches_line_audio():
     finally:
         if made: f.unlink()
 
+@test
+def asset_paths_ascii():
+    # jsDelivr 的 gh 路由對中文檔名回 404（GitHub raw 正常），2026-10-06 實測
+    import re
+    blob = json.dumps(_built(), ensure_ascii=False)
+    bad = sorted({u for u in re.findall(r'/files/assets/[^"\\]+', blob) if not u.isascii()})
+    assert not bad, bad[:5]
+
 if __name__ == '__main__': main()

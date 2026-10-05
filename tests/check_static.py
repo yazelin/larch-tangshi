@@ -246,6 +246,9 @@ def line_audio_spoken():
     j = line_audio.job('小樂', '驚訝', '好。')
     assert j['voice'].endswith('ExplorativeGirl') and j['emotion'] == 'surprised' and j['file'].endswith('.mp3')
     assert line_audio.job('', '', '風吹過來。')['emotion'] == 'calm', '旁白用 calm'
+    assert line_audio.job('故人', '', '請進。')['emotion'] == 'happy', '沒標表情時用角色預設情緒'
+    assert line_audio.job('故人', '驚訝', '咦？')['emotion'] == 'surprised', '有標表情照標的'
+    assert line_audio.job('小樂', '', '好。')['emotion'] == 'neutral'
 
 @test
 def build_attaches_line_audio():

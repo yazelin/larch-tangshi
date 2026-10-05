@@ -39,7 +39,7 @@ export async function open(base, { mobile = false } = {}) {
   const frameWith = async (sel) => { for (const f of page.frames()) if (await f.locator(sel).count()) return f; return null; };
   // 前進一步：畫面上有對話卡的對話框就點它，否則按 Enter（RPG 地圖上的對話）
   const advance = async () => {
-    for (const f of page.frames()) { const b = f.locator('.vn2-box'); if (await b.count() && await b.first().isVisible()) { await b.first().click(); return; } }
+    for (const f of page.frames()) { const b = f.locator('.vn2-box'); if (await b.count() && await b.first().isVisible()) { await b.first().click({ timeout: 3000 }).catch(() => {}); return; } }   // 讀音卡會自己切走，點不到就算了
     await page.keyboard.press('Enter');
   };
   return { advance, browser, page, errors, requests, text, waitText, clickText, frameWith, close: () => browser.close() };

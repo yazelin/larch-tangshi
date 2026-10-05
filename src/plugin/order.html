@@ -2,7 +2,8 @@
 <html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
 html,body{margin:0;height:100%;overflow:hidden;background:#fbf3e4;font-family:"Noto Sans TC",system-ui,sans-serif;color:#2b2b2b}
-#wrap{position:absolute;inset:3vh 3vw;display:flex;flex-direction:column;align-items:center;gap:2vh}
+/* 頂端留 12vh：播放器把插件卡 iframe 往上放約 10.5% 畫面高，頂端那段在螢幕外 */
+#wrap{position:absolute;inset:12vh 3vw 3vh;display:flex;flex-direction:column;align-items:center;gap:2vh}
 #tip{font-size:min(5vw,3vh)}
 #grid{display:grid;grid-template-columns:1fr 1fr;gap:3vw;width:100%;max-width:760px;flex:1;min-height:0}
 .slot{position:relative;border:4px solid #e2d6bd;border-radius:14px;background:#fff;padding:0;overflow:hidden;cursor:pointer;min-height:44px;display:flex;flex-direction:column}

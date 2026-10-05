@@ -16,6 +16,15 @@ CARDS = {
 }
 # 單卡測試用的資料：{'script', 'read', 'write', 'preset'}；script 也塞進卡片 HTML 當編輯器預覽的預設值
 SAMPLES = {}
+_PH = '/files/assets/placeholder/vocab.png'
+SAMPLES['vocab'] = {
+    'script': {'word': '雞黍', 'zhuyin': 'ㄐㄧ ㄕㄨˇ', 'meaning': '雞肉和黃米飯，招待客人的飯菜',
+               'img': _PH, 'audio': '', 'quiz': True, 'retry': True,
+               'gotVar': 'got_jishu', 'review': False, 'ask': '「雞黍」是什麼意思？',
+               'options': [{'img': _PH, 'label': '雞肉和黃米飯', 'ok': True},
+                           {'img': _PH, 'label': '一隻小雞', 'ok': False},
+                           {'img': _PH, 'label': '白米飯', 'ok': False}]},
+    'read': ['got_jishu', 'learned'], 'write': ['got_jishu', 'learned', 'last_ok']}
 
 
 def html(card_id):

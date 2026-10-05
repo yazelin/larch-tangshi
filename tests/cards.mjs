@@ -38,4 +38,46 @@ async function noInit(id, selector) {
 
 // ── 各卡測試 ──
 
+cardTest('vocab', async (withCard, noInit) => {
+  await noInit('vocab', 'button[data-ok]');
+  const result = async ui => (await ui.waitText(/RESULT.*last_ok=(true|false)/)).match(/RESULT.*?last_ok=(true|false)/)[0];
+  // 答對：got -1 → 1，learned +1；連點只算一次
+  await withCard('vocab', async ui => {
+    const f = await ui.frameWith('button[data-ok]');
+    const ok = f.locator('button[data-ok="1"]');
+    await ok.click(); await ok.click({ force: true }).catch(() => {});
+    await f.locator('#okBtn').click();
+    const t = await result(ui);
+    assert(/got_jishu=1/.test(t) && /learned=1/.test(t) && /last_ok=true/.test(t), '答對：got=1、learned=1（連點只算一次）' + t);
+  });
+  // 答錯：got -1 → 0，learned 不變
+  await withCard('vocab', async ui => {
+    const f = await ui.frameWith('button[data-ok]');
+    await f.locator('button[data-ok="0"]').first().click();
+    const t = await result(ui);
+    assert(/got_jishu=0/.test(t) && /learned=0/.test(t) && /last_ok=false/.test(t), '答錯：got=0、learned=0 ' + t);
+  });
+  // 主線錯過再答對（解釋完回來重答）：got 停在 0、learned 不加
+  await withCard('vocab', async ui => {
+    const f = await ui.frameWith('button[data-ok]');
+    await f.locator('button[data-ok="1"]').click(); await f.locator('#okBtn').click();
+    const t = await result(ui);
+    assert(/got_jishu=0/.test(t) && /learned=0/.test(t), '主線錯過再答對：got=0、learned=0 ' + t);
+  }, {}, { preset: { got_jishu: 0 } });
+  // 複習卡答對：got 0 → 2，learned +1
+  await withCard('vocab', async ui => {
+    const f = await ui.frameWith('button[data-ok]');
+    await f.locator('button[data-ok="1"]').click(); await f.locator('#okBtn').click();
+    const t = await result(ui);
+    assert(/got_jishu=2/.test(t) && /learned=1/.test(t), '複習答對：got=2、learned=1 ' + t);
+  }, {}, { preset: { got_jishu: 0 }, patch: { review: true, retry: false } });
+  // iPhone：選項點擊區 ≥44px、沒有橫向捲動
+  await withCard('vocab', async ui => {
+    const f = await ui.frameWith('button[data-ok]');
+    const sizes = await f.locator('button[data-ok]').evaluateAll(bs => bs.map(b => [b.offsetWidth, b.offsetHeight]));
+    assert(sizes.every(([w, h]) => w >= 44 && h >= 44), 'iPhone 選項 ≥44px ' + JSON.stringify(sizes));
+    assert(await f.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'iPhone 沒有橫向捲動');
+  }, { mobile: true });
+});
+
 for (const [id, fn] of Object.entries(TESTS)) if (!only || only === id) await fn(withCard, noInit);

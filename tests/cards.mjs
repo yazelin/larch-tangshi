@@ -57,7 +57,7 @@ async function noInit(id, selector) {
     assert(!(await p.evaluate(() => window.__sent.some(t => t === 'larch:set' || t === 'larch:complete'))), 'vocab 預覽模式答題不送出寫入');
     await p.evaluate(() => window.postMessage({ type: 'larch:init', values: { script: JSON.stringify({ word: '郭', zhuyin: 'ㄍㄨㄛ', meaning: '外城', quiz: false }) }, variables: {} }, '*'));
     await sleep(2500);
-    assert(await p.locator('#word').innerText() === '郭', 'vocab 正式 init 晚到：換成正式資料');
+    assert(await p.locator('#word').getAttribute('data-word') === '郭', 'vocab 正式 init 晚到：換成正式資料');
   }
   await b.close();
 }
@@ -97,6 +97,27 @@ cardTest('vocab', async (withCard, noInit) => {
     const t = await result(ui);
     assert(/got_jishu=2/.test(t) && /learned=1/.test(t), '複習答對：got=2、learned=1 ' + t);
   }, {}, { preset: { got_jishu: 0 }, patch: { review: true, retry: false } });
+  // 直式注音：每字一欄、符號正立；二三四聲標在最後一個符號右上角，輕聲標在整欄上頭（教育部《國語注音符號手冊》）
+  await withCard('vocab', async ui => {
+    const f = await ui.frameWith('#word');
+    const cols = await f.locator('.zy').count();
+    assert(cols === 2, `雞黍兩個字各一欄注音（${cols}）`);
+    const r = await f.evaluate(() => {
+      const zy = document.querySelectorAll('.zy')[1], syms = zy.querySelectorAll('.sym'), tone = zy.querySelector('.tone');
+      const last = syms[syms.length - 1].getBoundingClientRect(), t = tone.getBoundingClientRect();
+      return { wm: getComputedStyle(zy).writingMode, toneText: tone.textContent, right: t.left >= last.right - 2, upper: t.top + t.height / 2 < last.top + last.height / 2, n: syms.length };
+    });
+    assert(r.wm === 'horizontal-tb' && r.toneText === 'ˇ' && r.n === 2, '黍：ㄕㄨ 兩個符號正立、聲調 ˇ 獨立 ' + JSON.stringify(r));
+    assert(r.right && r.upper, 'ˇ 在 ㄨ 的右上角 ' + JSON.stringify(r));
+  });
+  await withCard('vocab', async ui => {
+    const f = await ui.frameWith('#word');
+    const r = await f.evaluate(() => {
+      const zy = document.querySelector('.zy'), light = zy.querySelector('.light'), first = zy.querySelector('.sym');
+      return light ? light.getBoundingClientRect().bottom <= first.getBoundingClientRect().top + 2 : null;
+    });
+    assert(r === true, '輕聲 ˙ 標在整欄上頭');
+  }, {}, { patch: { word: '麼', zhuyin: '˙ㄇㄜ' } });
   // 一切到生字卡就自動念一次（出題與只看的卡都要）
   for (const quiz of [true, false]) {
     await withCard('vocab', async ui => {

@@ -1,0 +1,48 @@
+{
+ "id": "project-ac006859-4f72-4956-a83e-ddc2ed9a1c0a",
+ "name": "唐詩小旅行：過故人莊",
+ "edges": [],
+ "media": [],
+ "nodes": [],
+ "locale": "zh-Hant",
+ "ownerId": "c29cd393-779b-4d47-b71a-9f2596bfaa8b",
+ "settings": {
+  "aiMode": "authored",
+  "textSpeed": 32,
+  "resolution": {
+   "width": 1920,
+   "height": 1080
+  },
+  "showRpgHud": false,
+  "typingEffect": true,
+  "aiDirectorUseBgm": true,
+  "autoAdvanceDelay": 1800,
+  "aiDirectorMediaScope": "board-only",
+  "aiDirectorAllowPlayerInput": true,
+  "aiDirectorAllowImprovisation": false,
+  "plugins": {}
+ },
+ "createdAt": "2026-10-05T07:43:13.685Z",
+ "languages": [
+  {
+   "code": "zh-Hant",
+   "label": "繁體中文",
+   "voiceMode": "shared"
+  }
+ ],
+ "updatedAt": "2026-10-05T07:43:13.872Z",
+ "variables": [],
+ "description": "給小學三年級的唐詩互動教材：兩個小朋友掉進〈過故人莊〉的世界，認生字、跟著念、背全詩。",
+ "schemaVersion": 1,
+ "boards": [
+  {
+   "id": "main",
+   "name": "過故人莊",
+   "description": "",
+   "kind": "story",
+   "nodes": [],
+   "edges": []
+  }
+ ],
+ "activeBoardId": "main"
+}

@@ -1,0 +1,6 @@
+dist/
+snapshots/
+assets/uploaded.json
+__pycache__/
+.superpowers/
+larch-project-*/

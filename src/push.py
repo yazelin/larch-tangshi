@@ -1,4 +1,6 @@
-"""推到 Larch：快照 → 上傳用到的圖 → 換網址 → 整包 PUT（包在 {"project": …}）→ 讀回比對。
+"""推到 Larch：快照 → 素材網址換成 jsDelivr（釘 commit）→ 整包 PUT（包在 {"project": …}）→ 讀回比對 → 預熱 jsDelivr。
+素材不再上傳到 Larch：Larch 的媒體在 pub-*.r2.dev，那是 R2 的開發網址，不快取又限流（實測每次 0.6～1.7 秒），
+jsDelivr 熱快取 0.1～0.2 秒。素材要先 commit 並推上 GitHub，jsDelivr 才抓得到。
 
     python3 src/push.py "這次改了什麼"
 """
@@ -9,7 +11,6 @@ import build
 ROOT = build.ROOT
 KEY = open(os.path.expanduser(os.environ.get('LARCH_KEY_FILE', '~/.config/larch/key'))).read().strip()
 BASE = f'https://larch.ink/api/agent/projects/{build.PROJECT_ID}'
-UPLOADED = ROOT / 'assets/uploaded.json'
 MIME = {'.png': 'image/png', '.webp': 'image/webp', '.jpg': 'image/jpeg', '.mp3': 'audio/mpeg'}
 
 
@@ -58,24 +59,44 @@ def merge_settings(online, built):
     return m
 
 
-def upload_all(text):
-    done = json.loads(UPLOADED.read_text()) if UPLOADED.exists() else {}
-    for rel in sorted(set(re.findall(r'/files/assets/([\w./-]+\.(?:png|webp|jpg|mp3))', text))):
-        f = ROOT / 'dist/assets' / rel   # build.main() 把 assets/ 與詩的 art、audio 鏡像到這裡
-        key = f'{rel}@{int(f.stat().st_mtime)}'
-        if key in done: continue
-        body = {'name': 'tangshi_' + rel.replace('/', '_'), 'mimeType': MIME[f.suffix],
-                'category': 'audio' if f.suffix == '.mp3' else 'image',
-                'base64': base64.b64encode(f.read_bytes()).decode()}
-        _, j = req('POST', '/media', body)
-        done[key] = j['asset']['url']
-        print('上傳', rel, '→', done[key], flush=True)
-        UPLOADED.write_text(json.dumps(done, ensure_ascii=False, indent=1))
-        time.sleep(2)
-    latest = {}
-    for k, url in done.items():
-        latest[k.rsplit('@', 1)[0]] = url  # 同一檔多版本時取最後寫入的
-    return latest
+REPO = 'yazelin/larch-tangshi'
+POEM_DIR = 'poems/guo-guren-zhuang'
+
+
+def _git(*args):
+    import subprocess
+    return subprocess.run(['git', *args], cwd=ROOT, capture_output=True, text=True, check=True).stdout
+
+
+def cdn_url(rel, sha):
+    """/files/assets/<rel> 對應的 repo 路徑：placeholder/ 在 assets/，art/、audio/ 在詩的資料夾。"""
+    path = f'assets/{rel}' if rel.startswith('placeholder/') else f'{POEM_DIR}/{rel}'
+    return f'https://cdn.jsdelivr.net/gh/{REPO}@{sha}/{path}'
+
+
+def to_cdn(text):
+    """把 /files/assets/… 換成釘在目前 commit 的 jsDelivr 網址。素材沒 commit、或 commit 還沒推上 GitHub 就中止。"""
+    sha = _git('rev-parse', 'HEAD').strip()
+    dirty = [l for l in _git('status', '--porcelain', '--', 'assets', POEM_DIR).splitlines() if l.strip()]
+    if dirty: raise SystemExit(f'素材有沒 commit 的變更，jsDelivr 抓不到：{dirty[:5]}')
+    if not _git('branch', '-r', '--contains', sha).strip():
+        raise SystemExit(f'{sha[:7]} 還沒推上 GitHub，jsDelivr 抓不到；先 git push')
+    return re.sub(r'/files/assets/([\w./-]+\.(?:png|webp|jpg|mp3))', lambda m: cdn_url(m.group(1), sha), text)
+
+
+def prewarm(text):
+    """每個 jsDelivr 網址先抓一次，第一位玩家才不會碰到冷快取（冷 2 秒多、熱 0.1～0.2 秒）。"""
+    from concurrent.futures import ThreadPoolExecutor
+    urls = sorted(set(re.findall(r'https://cdn\.jsdelivr\.net/gh/[^"\\]+', text)))
+    def get(u):
+        try:
+            with _open(urllib.request.Request(u, headers={'User-Agent': 'Mozilla/5.0'}), timeout=60) as r: return r.status
+        except urllib.error.HTTPError as e: return e.code
+        except Exception: return 0
+    with ThreadPoolExecutor(8) as ex: codes = list(ex.map(get, urls))
+    bad = [u for u, c in zip(urls, codes) if c != 200]
+    print(f'預熱 jsDelivr：{len(urls) - len(bad)}/{len(urls)} 個檔回 200', flush=True)
+    if bad: raise SystemExit(f'jsDelivr 抓不到：{bad[:5]}')
 
 
 def content_key(board):
@@ -117,14 +138,12 @@ def main(summary):
     build.main()
     built = build.build()
     text = json.dumps(built, ensure_ascii=False)
-    urls = upload_all(text)
-    for rel, url in urls.items():
-        text = text.replace('/files/assets/' + rel, url)
+    text = to_cdn(text)
     left = re.findall(r'/files/assets/[^"\\]+', text)
     if left: raise SystemExit(f'還有沒換掉的本機路徑：{left[:5]}')
     built = json.loads(text)
 
-    etag, cur = req('GET')  # 上傳會改 media，重抓
+    etag, cur = req('GET')  # 抓最新的 etag
     online = cur.get('project', cur)
     project = dict(online)
     if len(online.get('boards', [])) > len(built['boards']):
@@ -144,6 +163,7 @@ def main(summary):
     check(len(b0['edges']) == len(w0['edges']), f"連線數 {len(b0['edges'])} ≠ {len(w0['edges'])}")
     check('tangshi-kit' in back['settings']['plugins'], '插件設定不見了')
     check(len(back['variables']) == len(built['variables']), '變數數量不符')
+    prewarm(text)
     print('推送完成，讀回比對通過：', len(b0['nodes']), '張卡、', len(b0['edges']), '條線')
 
 

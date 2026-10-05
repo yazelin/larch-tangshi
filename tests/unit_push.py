@@ -53,4 +53,24 @@ def server_error_not_landed_aborts_without_resend():
 def content_key_sees_text_change():
     assert push.content_key(BOARD) != push.content_key(OLD)
 
+@test
+def cdn_url_maps_repo_paths():
+    u = push.cdn_url('art/bg/road.webp', 'abc123')
+    assert u == 'https://cdn.jsdelivr.net/gh/yazelin/larch-tangshi@abc123/poems/guo-guren-zhuang/art/bg/road.webp', u
+    assert push.cdn_url('placeholder/cg.png', 'abc123').endswith('@abc123/assets/placeholder/cg.png')
+    assert push.cdn_url('audio/lines/x.mp3', 'abc123').endswith('/poems/guo-guren-zhuang/audio/lines/x.mp3')
+
+@test
+def to_cdn_refuses_uncommitted_or_unpushed():
+    text = '{"a": "/files/assets/art/bg/road.webp"}'
+    push._git = lambda *a: {'rev-parse': 'abc123\n', 'status': '', 'branch': '  origin/main\n'}[a[0]]
+    out = push.to_cdn(text)
+    assert 'cdn.jsdelivr.net/gh/yazelin/larch-tangshi@abc123/poems' in out and '/files/assets/' not in out
+    push._git = lambda *a: {'rev-parse': 'abc123\n', 'status': ' M poems/guo-guren-zhuang/art/bg/road.webp\n', 'branch': '  origin/main\n'}[a[0]]
+    try: push.to_cdn(text); raise AssertionError('有沒 commit 的素材要擋')
+    except SystemExit as e: assert 'commit' in str(e)
+    push._git = lambda *a: {'rev-parse': 'abc123\n', 'status': '', 'branch': ''}[a[0]]
+    try: push.to_cdn(text); raise AssertionError('commit 沒推上 GitHub 要擋')
+    except SystemExit as e: assert 'GitHub' in str(e)
+
 if __name__ == '__main__': main()

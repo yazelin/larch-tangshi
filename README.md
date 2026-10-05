@@ -36,7 +36,7 @@
     python3 src/art_jobs.py [bg|vocab|char|cg]             # 產圖（本機 codex）
     python3 src/standees.py                                # 立繪去背、統一畫布
     python3 src/vocab_audio.py                             # 生字與跟念音檔（larch-tts-bridge）
-    python3 src/push.py "改了什麼"                          # 推上 Larch（發佈要作者在網頁按）
+    python3 src/push.py "改了什麼"                          # 推上 Larch：素材走 jsDelivr（先 commit 並 git push），發佈要作者在網頁按
 
 下一首詩：在 `poems/` 開新資料夾，放 `script.md`、`vocab.json`、`考證.md`，插件與建置不用改。
 

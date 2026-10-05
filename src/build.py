@@ -1,5 +1,5 @@
 """組出 dist/project.json：骨架＋劇本對話卡＋tangshi-kit 插件卡＋有條件連線。"""
-import json, os, pathlib, random, shutil
+import json, os, pathlib, random, re, shutil, subprocess
 import art, cards, plugin, recite_plan, script, variables, vocab
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 PROJECT_ID = 'project-ac006859-4f72-4956-a83e-ddc2ed9a1c0a'
@@ -29,6 +29,21 @@ def vocab_node(e, a, entries, node_id, review=False):
         g = f"got_{e['id']}"
         return plugin.card_node('vocab', node_id, s, read=[g, 'learned'], write=[g, 'learned', 'last_ok'])
     return plugin.card_node('vocab', node_id, s, read=[], write=[])
+
+def follow_marks(url):
+    """跟念音檔每個字的起點（秒）：抓最長的一段靜音當逗號停頓，前五字平均分在停頓前、後五字分在停頓後。
+    沒有音檔或抓不到停頓就回 []，卡片會改用音檔長度平均分。"""
+    if not url: return []
+    f = ROOT / 'poems/guo-guren-zhuang' / url.removeprefix('/files/assets/')
+    out = subprocess.run(['ffmpeg', '-hide_banner', '-i', str(f), '-af', 'silencedetect=noise=-35dB:d=0.12', '-f', 'null', '-'],
+                         capture_output=True, text=True).stderr
+    dur = float(re.search(r'Duration: (\d+):(\d+):([\d.]+)', out).group(3))
+    gaps = [(float(a), float(b)) for a, b in re.findall(r'silence_start: ([\d.]+).*?silence_end: ([\d.]+)', out, re.S)]
+    gaps = [g for g in gaps if 0.3 * dur < g[0] < 0.7 * dur]
+    if not gaps: return []
+    p0, p1 = max(gaps, key=lambda g: g[1] - g[0])
+    return [round(p0 * i / 5, 3) for i in range(5)] + [round(p1 + (dur - p1) * i / 5, 3) for i in range(5)]
+
 
 def stage_for(who, seen, a):
     """一句台詞的站位：只站講話的人（置中，換成他標的表情）；旁白時沿用上一位、回到平常。
@@ -103,7 +118,7 @@ def build():
             elif it['kind'] == 'follow':
                 i = it['pair']
                 fid = f'f-{i}'
-                N(plugin.card_node('follow', fid, {'lines': vocab.LINES[2 * i:2 * i + 2], 'audio': a[f'f-{i}'], 'marks': []}, [], []))
+                N(plugin.card_node('follow', fid, {'lines': vocab.LINES[2 * i:2 * i + 2], 'audio': a[f'f-{i}'], 'marks': follow_marks(a[f'f-{i}'])}, [], []))
                 chain(fid)
             elif it['kind'] == 'order':
                 items = [{'img': a[f'cg-{i + 1}'], 'caption': f'{vocab.LINES[2 * i]}，{vocab.LINES[2 * i + 1]}'} for i in range(4)]

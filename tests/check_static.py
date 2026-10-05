@@ -223,4 +223,16 @@ def title_and_cover():
     a = art.paths()
     assert p['settings']['titleCoverImage'] == a['cg-5'] and p['settings']['projectThumbnail'] == a['cg-5']
 
+@test
+def follow_marks_from_audio():
+    # 每個字的起點：前半句五字在逗號停頓前、後半句五字在停頓後（點哪個字從哪個字播）
+    for n in _built()['boards'][0]['nodes']:
+        d = n['data']
+        if d.get('pluginCardId') != 'follow': continue
+        s = json.loads(d['pluginValues']['script'])
+        if not s['audio']: continue
+        m = s['marks']
+        assert len(m) == 10 and all(b > a for a, b in zip(m, m[1:])), (n['id'], m)
+        assert m[5] - m[4] > (m[4] - m[0]) / 4 * 1.3, f"{n['id']} 沒抓到逗號停頓：{m}"
+
 if __name__ == '__main__': main()

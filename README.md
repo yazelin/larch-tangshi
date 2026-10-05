@@ -22,7 +22,7 @@
 | `poems/guo-guren-zhuang/art/`、`audio/` | 背景、CG、生字圖、立繪；生字與跟念音檔 |
 | `src/plugin/` | 自製插件 tangshi-kit：生字卡、跟著念、四張圖排順序、背誦闖關 |
 | `src/build.py` | 讀劇本與生字資料，組出 `dist/project.json` |
-| `src/push.py` | 推上 Larch：快照、上傳、整包 PUT、讀回比對 |
+| `src/push.py` | 推上 Larch：快照、素材換成 jsDelivr 網址、整包 PUT、讀回比對、預熱 |
 | `docs/specs/`、`docs/plans/` | 設計規格與實作計劃 |
 
 ## 指令

@@ -87,4 +87,23 @@ def to_cdn_refuses_uncommitted_or_unpushed():
     try: push.to_cdn(text); raise AssertionError('commit 沒推上 GitHub 要擋')
     except SystemExit as e: assert 'GitHub' in str(e)
 
+@test
+def prewarm_purges_cached_404():
+    # jsDelivr 會把冷抓失敗的 404 快取起來（檔案其實在）；預熱遇到 404 先 purge 再抓
+    import io, urllib.error
+    calls = []
+    class R(io.BytesIO):
+        status = 200
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+    def fake_open(req, timeout=0):
+        u = req.full_url; calls.append(u)
+        if u.startswith('https://purge.jsdelivr.net/'): return R(b'{}')
+        if sum(1 for c in calls if c == u) == 1 and u.endswith('x.mp3'): raise urllib.error.HTTPError(u, 404, 'nf', {}, io.BytesIO(b''))
+        return R(b'ok')
+    orig = push._open; push._open = fake_open
+    try: push.prewarm('"https://cdn.jsdelivr.net/gh/yazelin/larch-tangshi@aaa/poems/x.mp3"')
+    finally: push._open = orig
+    assert any(c.startswith('https://purge.jsdelivr.net/gh/yazelin/larch-tangshi@aaa/poems/x.mp3') for c in calls), calls
+
 if __name__ == '__main__': main()

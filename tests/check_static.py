@@ -67,4 +67,20 @@ def script_bad_directive():
     except ValueError as e: assert '第 2 行' in str(e), e; return
     raise AssertionError('未知指令應該 raise ValueError')
 
+@test
+def variables_cover_core():
+    import variables, vocab
+    for e in vocab.load():
+        if e['core']: assert f"got_{e['id']}" in variables.VARS, e['id']
+    for k in ('last_ok', 'learned', 'stars', 'hop'): assert k in variables.VARS
+
+@test
+def card_node_gate_lists():
+    import plugin
+    n = plugin.card_node('vocab', 'n1', {'word': '郭'}, read=['got_guocheng', 'learned'], write=['got_guocheng', 'learned', 'last_ok'])
+    d = n['data']
+    assert d['pluginId'] == 'tangshi-kit' and d['pluginCardId'] == 'vocab'
+    assert d['pluginWriteVars'] == ['got_guocheng', 'learned', 'last_ok'] and d['pluginFrame']['showButton'] is False
+    assert '"word": "郭"' in d['pluginValues']['script'] and 'common.js' not in d['pluginHtml']
+
 if __name__ == '__main__': main()

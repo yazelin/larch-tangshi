@@ -274,4 +274,24 @@ def asset_paths_ascii():
     bad = sorted({u for u in re.findall(r'/files/assets/[^"\\]+', blob) if not u.isascii()})
     assert not bad, bad[:5]
 
+@test
+def vocab_announced_by_player():
+    # 插件 iframe 沒開 autoplay，卡片自己念會被擋；改在生字卡前放一張讀音卡，讓播放器本體播發音（2026-10-06 線上實測）
+    import art
+    a = art.paths()
+    b = _built()['boards'][0]
+    nodes = {n['id']: n for n in b['nodes']}
+    into = {}
+    for e in b['edges']: into.setdefault(e['target'], []).append(e['source'])
+    for vid in [i for i in nodes if i.startswith(('v-', 'r-'))]:
+        cid = vid.split('-', 1)[1]
+        pid = ('p-' if vid.startswith('v-') else 'pr-') + cid
+        assert pid in nodes, f'{vid} 前面沒有讀音卡'
+        d = nodes[pid]['data']
+        line = d['dialogueLines'][0]
+        assert line['voiceUrl'] == a[f'a-{cid}'] and d.get('voiceMode') == 'ai', pid
+        assert d.get('autoAdvance', {}).get('mode') == 'voice' and d['autoAdvance'].get('enabled'), pid
+        srcs = into[vid]
+        assert pid in srcs and all(s == pid or s.startswith('x-') for s in srcs), (vid, srcs)
+
 if __name__ == '__main__': main()

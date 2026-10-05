@@ -55,6 +55,17 @@ def voiced(node, who):
     return node
 
 
+def announce(node_id, e, a, bg):
+    """生字卡前的讀音卡：顯示字與注音，由播放器本體播發音（插件 iframe 沒開 autoplay，卡片自己念會被擋），念完自動往下。"""
+    n = cards.dialogue(node_id, f"讀音：{e['word']}", [f"{e['word']}　{e['zhuyin']}"], bg=bg)
+    d = n['data']
+    if a[f"a-{e['id']}"]:
+        d['dialogueLines'][0]['voiceUrl'] = a[f"a-{e['id']}"]
+        d['voiceMode'] = 'ai'
+    d['autoAdvance'] = {'enabled': True, 'mode': 'voice'}
+    return n
+
+
 def stage_for(who, seen, a):
     """一句台詞的站位：只站講話的人（置中，換成他標的表情）；旁白時沿用上一位、回到平常。
     作者 2026-10-05 拍板：手機直式畫面四人全身擠不下。seen 記這一幕最後開口的人。"""
@@ -116,7 +127,8 @@ def build():
                 bg = a[it['key']]; on_cg[0] = it['key'].startswith('cg-'); continue
             if it['kind'] == 'vocab':
                 e = by_word[it['word']]
-                vid = f"v-{e['id']}"
+                vid, pid = f"v-{e['id']}", f"p-{e['id']}"
+                N(announce(pid, e, a, bg)); chain(pid)
                 N(vocab_node(e, a, entries, vid))
                 chain(vid)
                 if e['core']:
@@ -141,8 +153,11 @@ def build():
                     hid, rid = f'h-{n}', f"r-{e['id']}"
                     N(cards.setvar(hid, f"複習：{e['word']}", [{'variable': 'hop', 'op': 'set', 'value': n}]))
                     chain(hid)
+                    prid = f"pr-{e['id']}"
+                    N(announce(prid, e, a, bg))
                     N(vocab_node(e, a, entries, rid, review=True))
-                    L(hid, rid, cond=(f"got_{e['id']}", 'eq', 0))
+                    L(hid, prid, cond=(f"got_{e['id']}", 'eq', 0))
+                    L(prid, rid)
                     L(rid, f'h-{n + 1}' if n + 1 < len(core_order) else 'h-end')
                 N(cards.setvar('h-end', '複習結束', [{'variable': 'hop', 'op': 'set', 'value': len(core_order)}]))
                 chain('h-end')

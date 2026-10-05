@@ -32,9 +32,11 @@ var L = (function () {
     set: function (n, v) { vars[n] = v; if (!preview) parent.postMessage({ type: 'larch:set', name: n, value: v }, '*'); },
     get: function (n, dflt) { return (n in vars && vars[n] !== '' && vars[n] != null) ? vars[n] : dflt; },
     done: function () { if (finished || preview) return; finished = true; parent.postMessage({ type: 'larch:complete' }, '*'); },
-    play: function (url, from, dur) {
+    /* onBlocked：瀏覽器擋掉自動播放（還沒有使用者手勢）時呼叫，卡片可以提示「點一下聽」 */
+    play: function (url, from, dur, onBlocked) {
       if (!url) return null;
-      var a = new Audio(url); a.currentTime = from || 0; a.play().catch(function () {});
+      var a = new Audio(url); a.currentTime = from || 0;
+      a.play().catch(function (e) { if (e && e.name === 'NotAllowedError' && onBlocked) onBlocked(); });
       if (dur) setTimeout(function () { a.pause(); }, dur * 1000);
       return a;
     }

@@ -68,35 +68,52 @@ def _git(*args):
     return subprocess.run(['git', *args], cwd=ROOT, capture_output=True, text=True, check=True).stdout
 
 
-def cdn_url(rel, sha):
+def repo_path(rel):
     """/files/assets/<rel> 對應的 repo 路徑：placeholder/ 在 assets/，art/、audio/ 在詩的資料夾。"""
-    path = f'assets/{rel}' if rel.startswith('placeholder/') else f'{POEM_DIR}/{rel}'
-    return f'https://cdn.jsdelivr.net/gh/{REPO}@{sha}/{path}'
+    return f'assets/{rel}' if rel.startswith('placeholder/') else f'{POEM_DIR}/{rel}'
+
+
+def cdn_url(rel, sha):
+    return f'https://cdn.jsdelivr.net/gh/{REPO}@{sha}/{repo_path(rel)}'
 
 
 def to_cdn(text):
-    """把 /files/assets/… 換成釘在目前 commit 的 jsDelivr 網址。素材沒 commit、或 commit 還沒推上 GitHub 就中止。"""
+    """把 /files/assets/… 換成 jsDelivr 網址，每個檔釘在它自己最後一次改動的 commit：
+    沒改的檔網址不變，jsDelivr 快取一直是熱的（釘 HEAD 的話每推一次 201 個檔全部要冷抓）。
+    素材沒 commit、或 HEAD 還沒推上 GitHub 就中止。"""
     sha = _git('rev-parse', 'HEAD').strip()
     dirty = [l for l in _git('status', '--porcelain', '--', 'assets', POEM_DIR).splitlines() if l.strip()]
     if dirty: raise SystemExit(f'素材有沒 commit 的變更，jsDelivr 抓不到：{dirty[:5]}')
     if not _git('branch', '-r', '--contains', sha).strip():
         raise SystemExit(f'{sha[:7]} 還沒推上 GitHub，jsDelivr 抓不到；先 git push')
-    return re.sub(r'/files/assets/([\w./-]+\.(?:png|webp|jpg|mp3))', lambda m: cdn_url(m.group(1), sha), text)
+    last = {}
+    def pin(m):
+        rel = m.group(1)
+        if rel not in last: last[rel] = _git('log', '-1', '--format=%H', '--', repo_path(rel)).strip()
+        if not last[rel]: raise SystemExit(f'{repo_path(rel)} 沒有 commit 紀錄')
+        return cdn_url(rel, last[rel])
+    return re.sub(r'/files/assets/([\w./-]+\.(?:png|webp|jpg|mp3))', pin, text)
 
 
 def prewarm(text):
     """每個 jsDelivr 網址先抓一次，第一位玩家才不會碰到冷快取（冷 2 秒多、熱 0.1～0.2 秒）。"""
     from concurrent.futures import ThreadPoolExecutor
     urls = sorted(set(re.findall(r'https://cdn\.jsdelivr\.net/gh/[^"\\]+', text)))
+    def fetch(u):
+        try:
+            with _open(urllib.request.Request(u, headers={'User-Agent': 'Mozilla/5.0'}), timeout=120) as r: return r.status
+        except urllib.error.HTTPError as e: return e.code
+        except Exception: return 0
+
     def get(u):
         q = urllib.parse.quote(u, safe=':/@')
-        for t in range(2):   # 冷快取第一次可能要 40 秒以上
-            try:
-                with _open(urllib.request.Request(q, headers={'User-Agent': 'Mozilla/5.0'}), timeout=120) as r: return r.status
-            except urllib.error.HTTPError as e: code = e.code
-            except Exception: code = 0
+        for t in range(3):   # 冷快取第一次可能要 40 秒以上
+            code = fetch(q)
+            if code == 200: return 200
+            if code == 404:   # jsDelivr 會把冷抓逾時的結果當 404 快取起來（檔案其實在），清掉再抓
+                fetch(q.replace('https://cdn.jsdelivr.net/', 'https://purge.jsdelivr.net/', 1))
         return code
-    with ThreadPoolExecutor(8) as ex: codes = list(ex.map(get, urls))
+    with ThreadPoolExecutor(3) as ex: codes = list(ex.map(get, urls))   # 並行 8 條冷抓時有一成逾時
     bad = [u for u, c in zip(urls, codes) if c != 200]
     print(f'預熱 jsDelivr：{len(urls) - len(bad)}/{len(urls)} 個檔回 200', flush=True)
     if bad: raise SystemExit(f'專案已經推上去了，但這些檔 jsDelivr 抓不到（玩家會看不到）：{bad[:5]}')

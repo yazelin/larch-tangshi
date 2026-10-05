@@ -17,8 +17,9 @@ export async function open(base, { mobile = false } = {}) {
   const browser = await chromium.launch({ executablePath: '/opt/google/chrome/chrome', headless: false });
   const ctx = await browser.newContext(mobile ? { ...devices['iPhone 13'], locale: 'zh-TW' } : { viewport: { width: 1280, height: 800 }, locale: 'zh-TW' });
   const page = await ctx.newPage();
-  const errors = [];
+  const errors = [], requests = [];
   page.on('pageerror', e => errors.push(e.message));
+  page.on('request', r => requests.push(r.url()));   // 從開頁就記，卡片一出現就發的請求才不會漏
   await page.goto(/\/(preview|play)\//.test(base) ? base : base + '/');
   await sleep(3500);
   const text = async () => (await Promise.all(page.frames().map(f => f.locator('body').innerText().catch(() => '')))).join(' | ').replace(/\s+/g, ' ');
@@ -38,10 +39,10 @@ export async function open(base, { mobile = false } = {}) {
   const frameWith = async (sel) => { for (const f of page.frames()) if (await f.locator(sel).count()) return f; return null; };
   // 前進一步：畫面上有對話卡的對話框就點它，否則按 Enter（RPG 地圖上的對話）
   const advance = async () => {
-    for (const f of page.frames()) { const b = f.locator('.vn2-box'); if (await b.count() && await b.first().isVisible()) { await b.first().click(); return; } }
+    for (const f of page.frames()) { const b = f.locator('.vn2-box'); if (await b.count() && await b.first().isVisible()) { await b.first().click({ timeout: 3000 }).catch(() => {}); return; } }   // 讀音卡會自己切走，點不到就算了
     await page.keyboard.press('Enter');
   };
-  return { advance, browser, page, errors, text, waitText, clickText, frameWith, close: () => browser.close() };
+  return { advance, browser, page, errors, requests, text, waitText, clickText, frameWith, close: () => browser.close() };
 }
 
 export function assert(cond, msg) { if (!cond) throw new Error('FAIL: ' + msg); console.log('ok  ', msg); }

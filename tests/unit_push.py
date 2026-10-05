@@ -60,17 +60,50 @@ def cdn_url_maps_repo_paths():
     assert push.cdn_url('placeholder/cg.png', 'abc123').endswith('@abc123/assets/placeholder/cg.png')
     assert push.cdn_url('audio/lines/x.mp3', 'abc123').endswith('/poems/guo-guren-zhuang/audio/lines/x.mp3')
 
+def fake_git(status='', pushed=True):
+    def g(*a):
+        if a[0] == 'rev-parse': return 'head999\n'
+        if a[0] == 'status': return status
+        if a[0] == 'branch': return '  origin/main\n' if pushed else ''
+        if a[0] == 'log': return {'poems/guo-guren-zhuang/art/bg/road.webp': 'aaa111\n', 'assets/placeholder/cg.png': 'bbb222\n'}[a[-1]]
+        raise AssertionError(a)
+    return g
+
+@test
+def to_cdn_pins_each_file_to_its_last_change():
+    # 每個檔釘在自己最後改動的 commit：沒改的檔網址不變，jsDelivr 快取一直熱
+    push._git = fake_git()
+    out = push.to_cdn('{"a": "/files/assets/art/bg/road.webp", "b": "/files/assets/placeholder/cg.png"}')
+    assert '@aaa111/poems/guo-guren-zhuang/art/bg/road.webp' in out and '@bbb222/assets/placeholder/cg.png' in out, out
+    assert 'head999' not in out
+
 @test
 def to_cdn_refuses_uncommitted_or_unpushed():
     text = '{"a": "/files/assets/art/bg/road.webp"}'
-    push._git = lambda *a: {'rev-parse': 'abc123\n', 'status': '', 'branch': '  origin/main\n'}[a[0]]
-    out = push.to_cdn(text)
-    assert 'cdn.jsdelivr.net/gh/yazelin/larch-tangshi@abc123/poems' in out and '/files/assets/' not in out
-    push._git = lambda *a: {'rev-parse': 'abc123\n', 'status': ' M poems/guo-guren-zhuang/art/bg/road.webp\n', 'branch': '  origin/main\n'}[a[0]]
+    push._git = fake_git(status=' M poems/guo-guren-zhuang/art/bg/road.webp\n')
     try: push.to_cdn(text); raise AssertionError('有沒 commit 的素材要擋')
     except SystemExit as e: assert 'commit' in str(e)
-    push._git = lambda *a: {'rev-parse': 'abc123\n', 'status': '', 'branch': ''}[a[0]]
+    push._git = fake_git(pushed=False)
     try: push.to_cdn(text); raise AssertionError('commit 沒推上 GitHub 要擋')
     except SystemExit as e: assert 'GitHub' in str(e)
+
+@test
+def prewarm_purges_cached_404():
+    # jsDelivr 會把冷抓失敗的 404 快取起來（檔案其實在）；預熱遇到 404 先 purge 再抓
+    import io, urllib.error
+    calls = []
+    class R(io.BytesIO):
+        status = 200
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+    def fake_open(req, timeout=0):
+        u = req.full_url; calls.append(u)
+        if u.startswith('https://purge.jsdelivr.net/'): return R(b'{}')
+        if sum(1 for c in calls if c == u) == 1 and u.endswith('x.mp3'): raise urllib.error.HTTPError(u, 404, 'nf', {}, io.BytesIO(b''))
+        return R(b'ok')
+    orig = push._open; push._open = fake_open
+    try: push.prewarm('"https://cdn.jsdelivr.net/gh/yazelin/larch-tangshi@aaa/poems/x.mp3"')
+    finally: push._open = orig
+    assert any(c.startswith('https://purge.jsdelivr.net/gh/yazelin/larch-tangshi@aaa/poems/x.mp3') for c in calls), calls
 
 if __name__ == '__main__': main()

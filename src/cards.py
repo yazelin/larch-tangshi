@@ -7,12 +7,13 @@ def _pos():
     return {'x': (_x[0] % 8) * 360, 'y': (_x[0] // 8) * 260}
 
 
-def dialogue(id, title, lines, bg='', start=False):
-    """lines：字串（旁白）或 (講者, 文字)。"""
+def dialogue(id, title, lines, bg='', start=False, stages=None):
+    """lines：字串（旁白）或 (講者, 文字)。stages：每句一套 stage.actors（None 表示不設）。"""
     dl = []
     for i, l in enumerate(lines):
         sp, tx = l if isinstance(l, tuple) else ('', l)
         dl.append({'id': f'{id}-l{i}', 'speaker': sp, 'text': tx})
+        if stages is not None: dl[-1]['stage'] = {'actors': stages[i]}
     data = {'type': 'dialogue', 'title': title, 'speaker': dl[0]['speaker'], 'text': dl[0]['text'],
             'dialogueLines': dl, 'stage': {'actors': []}}
     if bg: data['background'] = bg

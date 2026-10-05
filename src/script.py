@@ -1,7 +1,7 @@
 """劇本解析。格式：
 # <場景id> <標題> | bg=<背景鍵>     開新場景（bg 可省）
-講者：台詞                          台詞；沒有「：」的行算旁白
-@生字 <詞>  @跟念 <0-3>  @排圖  @複習  @背誦  @結算
+講者：台詞 或 講者〔表情〕：台詞     台詞；沒有「：」的行算旁白
+@生字 <詞>  @跟念 <0-3>  @排圖  @複習  @背誦  @結算  @背景 <鍵>（例如 cg-1，之後的台詞換這張背景）
 # explain 之後用 ## <詞> 分段，寫答錯時的解釋台詞
 空行與 <!-- --> 註解略過。
 """
@@ -31,11 +31,15 @@ def parse(text):
             cmd, _, arg = line.partition(' ')
             if cmd == '@生字': cur['items'].append({'kind': 'vocab', 'word': arg.strip()})
             elif cmd == '@跟念': cur['items'].append({'kind': 'follow', 'pair': int(arg)})
+            elif cmd == '@背景': cur['items'].append({'kind': 'bg', 'key': arg.strip()})
             elif cmd in SIMPLE: cur['items'].append({'kind': SIMPLE[cmd]})
             else: raise ValueError(f'第 {n} 行：不認得的指令 {cmd}')
             continue
         sp, _, tx = line.partition('：')
-        cur['items'].append({'kind': 'line', 'speaker': sp if tx else '旁白', 'text': tx or sp})
+        m = re.fullmatch(r'(.+?)〔(.+)〕', sp) if tx else None
+        if m: sp, expr = m.group(1), m.group(2)
+        else: expr = ''
+        cur['items'].append({'kind': 'line', 'speaker': sp if tx else '旁白', 'expr': expr, 'text': tx or sp})
     return {'scenes': scenes, 'explain': explain}
 
 

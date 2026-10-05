@@ -30,6 +30,21 @@ def vocab_node(e, a, entries, node_id, review=False):
         return plugin.card_node('vocab', node_id, s, read=[g, 'learned'], write=[g, 'learned', 'last_ok'])
     return plugin.card_node('vocab', node_id, s, read=[], write=[])
 
+SLOT = {'阿禾': 'farLeft', '小樂': 'left', '孟浩然': 'right', '故人': 'farRight'}
+
+
+def stage_for(who, seen, a):
+    """一句台詞的站位：這一幕到這句為止開過口的人都在台上，講話的人換成他標的表情。seen 會被更新。"""
+    sp, expr = who
+    if sp in SLOT and sp not in seen: seen.append(sp)
+    actors = []
+    for name in seen:
+        ex = expr if (name == sp and expr) else '平常'
+        url = a.get(f'ch-{art.CAST[name]}-{ex}') or a.get(f'ch-{art.CAST[name]}-平常')
+        if url: actors.append({'id': f'actor-{art.CAST[name]}', 'url': url, 'name': name, 'slot': SLOT[name],
+                               'scale': 0.96, 'offsetX': 0, 'offsetY': 0, 'enter': 'fade', 'loop': 'breathe'})
+    return actors
+
 
 def build():
     p = load_skeleton()
@@ -54,19 +69,24 @@ def build():
 
     for scene in sc['scenes']:
         bg = a.get(f"bg-{scene['bg']}", '')
-        buf, k = [], [0]
+        buf, k, seen, on_cg = [], [0], [], [False]
 
         def flush():
             if not buf: return
             nid = f"{scene['id']}-{k[0]}"; k[0] += 1
-            N(cards.dialogue(nid, scene['title'], [(i['speaker'] if i['speaker'] != '旁白' else '', i['text']) for i in buf],
-                             bg=bg, start=st['first']))
+            sp = lambda i: i['speaker'] if i['speaker'] != '旁白' else ''
+            # 背景是 CG 時舞台清空，不然立繪會擋住畫面
+            stages = [[] if on_cg[0] else stage_for((sp(i), i['expr']), seen, a) for i in buf]
+            N(cards.dialogue(nid, scene['title'], [(sp(i), i['text']) for i in buf],
+                             bg=bg, start=st['first'], stages=stages))
             st['first'] = False; buf.clear()
             chain(nid)
 
         for it in scene['items']:
             if it['kind'] == 'line': buf.append(it); continue
             flush()
+            if it['kind'] == 'bg':
+                bg = a[it['key']]; on_cg[0] = it['key'].startswith('cg-'); continue
             if it['kind'] == 'vocab':
                 e = by_word[it['word']]
                 vid = f"v-{e['id']}"

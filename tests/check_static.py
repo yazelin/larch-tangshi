@@ -55,7 +55,7 @@ def script_parse():
     s = script.parse(SAMPLE)
     sc = s['scenes'][0]
     assert (sc['id'], sc['title'], sc['bg']) == ('s1', '故人具雞黍', 'gate'), sc
-    assert sc['items'][0] == {'kind': 'line', 'speaker': '孟浩然', 'text': '有人送信來了。'}
+    assert sc['items'][0] == {'kind': 'line', 'speaker': '孟浩然', 'expr': '', 'text': '有人送信來了。'}
     assert sc['items'][1]['speaker'] == '旁白'
     assert sc['items'][2] == {'kind': 'vocab', 'word': '雞黍'} and sc['items'][3] == {'kind': 'follow', 'pair': 0}
     assert s['explain']['雞黍'] == [('故人', '你看，這一粒一粒黃黃的就是黍。')]
@@ -179,5 +179,36 @@ def script_poem_quotes_exact():
                 for q in re.findall(r'「([^」]{5,})」', i['text']):
                     if any(c in q for c in '雞黍軒郭桑麻菊') and '，' in q:
                         assert q.rstrip('。') in vocab.POEM, f'詩句引錯：{q}'
+
+@test
+def script_expr_and_bg():
+    import script
+    s = script.parse('# s1 x | bg=gate\n孟浩然〔開心〕：好。\n@背景 cg-1\n旁白：看。\n')
+    it = s['scenes'][0]['items']
+    assert it[0] == {'kind': 'line', 'speaker': '孟浩然', 'expr': '開心', 'text': '好。'}, it[0]
+    assert it[1] == {'kind': 'bg', 'key': 'cg-1'}, it[1]
+
+@test
+def stage_per_line():
+    import build
+    a = {'ch-meng-開心': 'M開', 'ch-meng-平常': 'M平', 'ch-ahe-平常': 'A平', 'ch-ahe-驚訝': 'A驚'}
+    seen = []
+    st1 = build.stage_for(('孟浩然', '開心'), seen, a)
+    st2 = build.stage_for(('阿禾', '驚訝'), seen, a)
+    st3 = build.stage_for(('', ''), seen, a)
+    assert [x['url'] for x in st1] == ['M開'], st1
+    assert {x['name']: x['url'] for x in st2} == {'孟浩然': 'M平', '阿禾': 'A驚'}, st2
+    assert {x['slot'] for x in st2} == {'right', 'farLeft'} and all(x['loop'] == 'breathe' for x in st2)
+    assert {x['name']: x['url'] for x in st3} == {'孟浩然': 'M平', '阿禾': 'A平'}, '旁白時大家回到平常'
+
+@test
+def cg_background_clears_stage():
+    import art
+    a = art.paths()
+    cg = {a[f'cg-{i}'] for i in range(1, 6)}
+    cards_on_cg = [n for n in _built()['boards'][0]['nodes'] if n['data'].get('type') == 'dialogue' and n['data'].get('background') in cg]
+    assert len(cards_on_cg) >= 4, f'四聯各要有一張 CG 背景卡，現在 {len(cards_on_cg)}'
+    for n in cards_on_cg:
+        assert all(not l.get('stage', {}).get('actors') for l in n['data']['dialogueLines']), n['id']
 
 if __name__ == '__main__': main()
